@@ -7,15 +7,18 @@ the user on the Surface Go — under Fedora *and* under Windows 11.
 Start the session by running the eight suites below (about a minute) — that
 confirms the environment before anything is changed.
 
-**GATE 8 passed** (user confirmed by finger on the Surface Go, 2026-08-16).
+**The project is finished.** All nine steps are built and **GATES 0–9 are all
+confirmed by the user by hand on the Surface Go**, GATE 9 on Fedora and Windows
+11 both (2026-08-16). Nothing here is waiting on anyone.
 
-**Step 9 is built.** Both presets export and the Linux build was checked
-against itself; what remains is GATE 9, which only the user can judge — and it
-needs the Windows partition as well as Fedora. See "What is left" below.
+This document stays as the map for whoever picks the project up next — to fix
+something, to record a character again, or to build one of the things listed as
+out of scope at the end of `docs/PLAN.md` (spoken character names, word
+practice, an Android export). Read it, then `docs/PLAN.md`.
 
 ## Where the project stands (verified 2026-08-16)
 
-Steps 0–9 are built. GATES 0–8 are confirmed by the user; GATE 9 pending.
+Steps 0–9 built, GATES 0–9 all passed.
 
 **The dataset is finished: 137 of 137 characters, validating clean** — 44 Thai
 consonants, 26 capitals, 26 small letters, 10 digits, 10 Thai numerals, 21 Thai
@@ -118,18 +121,21 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/writi
   flushing a line and looks completely silent. That cost half an hour here.
   The same goes for `user://logs/`, which is written on a clean exit.
 
-## What is left: GATE 9 (final), on the device
+## GATE 9 — passed on both platforms
 
-Only the user can judge it, and it needs both operating systems on the Surface
-Go:
+`build/linux/writing_practice.x86_64` standalone on Fedora, and
+`build/windows/writing_practice.exe` copied to the Windows 11 partition of the
+same machine: touch, looped Thai rendering, inking and persistence all
+confirmed by the user.
 
-- **Fedora**: `build/linux/writing_practice.x86_64` run standalone, outside the
-  editor — touch working, Thai rendering with the looped Sarabun, smooth
-  inking, stars persisting across a relaunch of the *exported* binary.
-- **Windows 11**: copy `build/windows/writing_practice.exe` to the Windows
-  partition and run it there. Same checks.
+Copying the Linux build to another Fedora machine is **the one file**: it links
+against nothing but glibc 2.28+ (librt, libpthread, libdl, libm, libc); GL,
+X11/Wayland and audio are opened at runtime. `chmod +x` after a USB or zip
+trip. To bring the child's stars along, copy
+`~/.local/share/godot/app_userdata/Writing Practice/progress.json` as well —
+it is the only file the app writes.
 
-Worth knowing before that session:
+Worth knowing:
 
 - `user://progress.json` is the only file the app writes (in an export `res://`
   is read-only, which is exactly why progress does not live beside the stroke
@@ -146,6 +152,9 @@ Worth knowing before that session:
   allocation before looking at engine settings.
 - Nothing in Step 9 touched the app's behaviour, so a failure that is not about
   packaging is a Step 5–8 fix, and the eight suites still cover it.
+- The Stroke Recorder cannot save from an exported build — `res://` is
+  read-only there. Recording stays an editor-binary job on the repository:
+  `godot --path . -- --recorder`, then re-export.
 
 ## Pitfalls / conventions
 

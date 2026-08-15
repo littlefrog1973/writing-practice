@@ -4,6 +4,12 @@ A finger-tracing handwriting app for learning Thai and English characters
 (Godot 4 + GDScript), built for a touch-screen Surface Go running Fedora 44
 and Windows 11.
 
+**Finished 2026-08-16.** All nine steps of `docs/PLAN.md` are built and all
+nine gates confirmed by hand on the device, Fedora and Windows 11 both. The
+dataset is complete at 137 characters, every one recorded by hand on the touch
+screen. See "Building the app" below for the two export commands, and
+`docs/PLAN.md` for what was deliberately left out.
+
 ## Tech stack / installation notes (Step 0)
 
 - **Godot 4.7.1-stable** (official standalone binary from godotengine.org,
