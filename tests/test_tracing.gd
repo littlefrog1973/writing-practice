@@ -28,6 +28,7 @@ const TEST_SET := "thai_consonants"
 const TRACED_CHAR := "ก"
 const NEXT_CHAR := "ข"
 const UNRECORDED_CHAR := "ฃ"
+const SHORT_CHAR := "ค"  ## One short stroke, the size of Step 8's tone marks.
 
 var _tr: Node
 var _real_dataset: Dictionary = {}  ## path → SHA-256, to prove we never touched it.
@@ -72,6 +73,7 @@ func _main() -> void:
 	await test_again_and_scribble()
 	await test_score_and_next()
 	await test_unrecorded_character()
+	await test_a_short_stroke()
 
 	_check_real_dataset_untouched()
 	print("")
@@ -242,6 +244,35 @@ func test_unrecorded_character() -> void:
 			"open() jumps straight to a character, as the Step 7 menu will")
 
 
+## Step 8's tone marks are the first strokes short enough for the stray-tap
+## floor to matter. Held to a flat 24 px, the shortest of them (◌ื's third
+## stroke, 41 px) would have to be drawn better than half way before it counted
+## at all, and a child who fell short would get nothing back but the same
+## instruction — which reads as the app ignoring them.
+func test_a_short_stroke() -> void:
+	print("a stroke barely longer than a tap:")
+	_tr.open(TEST_SET, SHORT_CHAR)
+	await process_frame
+	_tr._demo.speed = 9000.0
+	_tr._demo.pause = 0.05
+	await _until(func() -> bool: return _tr._state == TR.State.TRACE, 8.0)
+	var guide: PackedVector2Array = _tr._screen_stroke(0)
+	var length := SD.stroke_length(guide)
+	check(length < TR.MIN_TRACE_LENGTH * 2.0 and not _tr._guide_is_dot(0),
+			"the guide stroke is %.0f px — short, but not a dot" % length)
+	check(_tr._stray_tap_floor(0) < TR.MIN_TRACE_LENGTH,
+			"so the floor comes down with it (%.0f px, not %.0f)"
+					% [_tr._stray_tap_floor(0), TR.MIN_TRACE_LENGTH])
+
+	# A real attempt — most of the way along a stroke this short, and still
+	# under the flat floor every longer stroke is held to.
+	var attempt := PackedVector2Array([guide[0], guide[0].lerp(guide[-1], 0.6)])
+	check(SD.stroke_length(attempt) < TR.MIN_TRACE_LENGTH,
+			"60%% of it is %.0f px — under the flat floor" % SD.stroke_length(attempt))
+	await _draw(attempt, 4.0)
+	check(_tr._traced.size() == 1, "and it counts as the stroke it plainly is")
+
+
 # --- scratch dataset ---------------------------------------------------------
 
 ## Note what the real dataset looks like before redirecting away from it.
@@ -268,6 +299,11 @@ func _write_scratch_dataset() -> void:
 		]),
 		SD.make_entry(NEXT_CHAR, TEST_SET, CS.name_of(TEST_SET, NEXT_CHAR), [
 			PackedVector2Array([Vector2(0.3, 0.3), Vector2(0.7, 0.7)]),
+		]),
+		# 0.04 of the box — too long to be a dot, far too short for a flat
+		# stray-tap floor to be fair to. The third stroke of ◌ื is this size.
+		SD.make_entry(SHORT_CHAR, TEST_SET, CS.name_of(TEST_SET, SHORT_CHAR), [
+			PackedVector2Array([Vector2(0.5, 0.2), Vector2(0.5, 0.24)]),
 		]),
 	]
 	var result: Dictionary = SD.save_set(CS.path_of(TEST_SET), entries)

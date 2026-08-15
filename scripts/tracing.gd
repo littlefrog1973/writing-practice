@@ -19,8 +19,9 @@ extends Control
 ## it looks, and the score card never blocks the way on. One star is the floor,
 ## not a failure — it comes with an invitation to write the character again.
 ## The only thing that does not advance is a stroke shorter than
-## MIN_TRACE_LENGTH — a stray tap, not an attempt — and even that is skipped
-## when the guide stroke is itself a dot (the dot on an "i").
+## MIN_TRACE_LENGTH — a stray tap, not an attempt — and even that floor is never
+## more than MIN_TRACE_RATIO of the stroke being asked for, and is skipped
+## entirely when the guide stroke is itself a dot (the dot on an "i").
 ##
 ## The reference glyph goes through GlyphGuide into a *square* box, exactly as
 ## the Stroke Recorder does. Stroke points are normalized against the box, not
@@ -69,6 +70,14 @@ const DOT_LENGTH := 6.0  ## A touch that travels less than this is stored as a d
 const DOT_OFFSET := Vector2(1.0, 1.0)  ## Gives a dot two points so it renders.
 const DOT_GUIDE_RATIO := 0.02  ## A guide stroke this short is a dot, not a line.
 const MIN_TRACE_LENGTH := 24.0  ## Below this a touch is a stray tap, not a stroke.
+
+## …but never more than this much of the stroke being asked for. Step 8's tone
+## marks brought the first short strokes into the dataset: before them the
+## shortest real stroke anywhere was Q's tail at 184 px, and the third stroke of
+## ◌ื is 41 px. A flat 24 px floor would demand 58% of that stroke before it
+## counted at all, and a child who fell short would get nothing but the same
+## instruction again. The floor stays where it was for every ordinary stroke.
+const MIN_TRACE_RATIO := 0.4
 
 @onready var _draw_box: Panel = $DrawBox
 @onready var _glyph: Label = $DrawBox/Glyph
@@ -291,7 +300,8 @@ func _finish_stroke() -> void:
 	_cancel_live_stroke()
 	if points.is_empty() or _stroke_index >= _strokes.size():
 		return
-	if SD.stroke_length(points) < MIN_TRACE_LENGTH and not _guide_is_dot(_stroke_index):
+	if SD.stroke_length(points) < _stray_tap_floor(_stroke_index) \
+			and not _guide_is_dot(_stroke_index):
 		# A stray tap — a resting palm, a mis-touch. Not a judgement of the
 		# tracing: the stroke stays open so the child can simply draw it.
 		_say("Draw along the dots, from the orange dot to the end.")
@@ -534,6 +544,13 @@ func _screen_strokes() -> Array:
 ## the one case where a tap is the correct way to trace it.
 func _guide_is_dot(index: int) -> bool:
 	return SD.stroke_length(_screen_stroke(index)) < _box().size.y * DOT_GUIDE_RATIO
+
+
+## How short a touch has to be before it is read as a stray tap rather than an
+## attempt at stroke `index` — never more of the stroke than MIN_TRACE_RATIO.
+func _stray_tap_floor(index: int) -> float:
+	return minf(MIN_TRACE_LENGTH,
+			SD.stroke_length(_screen_stroke(index)) * MIN_TRACE_RATIO)
 
 
 func _current_set_id() -> String:
