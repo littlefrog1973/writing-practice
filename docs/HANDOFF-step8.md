@@ -1,4 +1,4 @@
-# Hand-off: implement Step 8 — Thai vowels & tone marks
+# Hand-off: Step 8 — Thai vowels & tone marks
 
 Read this first, then the plan file `docs/PLAN.md` (Step 8 section). Stop at
 GATE 8 for user confirmation on the Surface Go before touching Step 9.
@@ -6,35 +6,25 @@ GATE 8 for user confirmation on the Surface Go before touching Step 9.
 Start the session by running the eight suites below (about a minute) — that
 confirms the environment before anything is changed.
 
-**GATE 7 is not passed yet.** It is judged by finger on the Surface Go and is
-waiting on the user:
+**GATE 7 passed** (user confirmed by finger on the Surface Go, 2026-08-16).
 
-- **GATE 7**: `godot --path .` — the full loop works by touch only, no keyboard
-  and no mouse: menu → pick a set → pick a character → trace → stars → back →
-  back. Earned stars survive quitting and relaunching the app.
+**Step 8 is half done.** The catalog half is built and committed (`eddf6be`);
+the recording half needs the user's hands and is what remains:
 
-If the user has not confirmed it, do that first and fix within Step 7 rather
-than starting Step 8. The suite `tests/test_menus.gd` already walks that exact
-path with synthetic touches and passes, so a GATE 7 failure is most likely
-about size, reach or clarity on a real 10" screen — a layout number in
-`main_menu.gd` / `character_select.gd`, not a design to rework.
+- **Done**: `thai_vowels` holds the 21 marks, the scenes draw them on the right
+  side of the dotted placeholder at a size that fits the box, and the suites
+  cover the state the set is in now.
+- **To do**: record the 21 with the Stroke Recorder, then GATE 8.
 
-Note that the tracing scene's buttons changed after GATES 5 and 6 were passed:
-all three child-facing scenes now share `assets/theme/app_theme.tres`, so its
-buttons are white rounded cards instead of Godot's default grey slabs. Nothing
-about the layout, the drawing box or the score card moved, but it is worth a
-second look at the same time as GATE 7.
+## Where the project stands (verified 2026-08-16)
 
-## Where the project stands (verified)
-
-Steps 0–7 are built; GATES 0–6 are confirmed by the user, GATE 7 pending.
+Steps 0–7 built and gated; Step 8's catalog work built, its recordings not.
 
 The project is a **git repository** (`main`). Commit as you go; the stroke data
 is hand-authored on a touch screen and cannot be regenerated.
 
-The dataset is **116/116 characters, validating clean** — every set except
-`thai_vowels`, which is an empty catalog stub. **Filling it is the whole of
-Step 8.** Do not clobber the rest.
+The dataset is **116 of 137 characters, validating clean**. The 21 missing are
+exactly the vowels. **Do not clobber the rest.**
 
 - Godot **4.7.1-stable** at `~/.local/bin/godot`; export templates installed.
 - Main scene is `scenes/main.tscn` (`scripts/main.gd`), a boot router on
@@ -56,91 +46,95 @@ Run the suites:
 
 ```sh
 godot --headless --path . --script tests/test_stroke_data.gd    # 39 checks
-godot --headless --path . --script tests/test_char_sets.gd      # 45 checks
+godot --headless --path . --script tests/test_char_sets.gd      # 54 checks
 godot --headless --path . --script tests/test_scorer.gd         # 58 checks
 godot --headless --path . --script tests/test_progress.gd       # 70 checks
 godot --headless --path . --script tests/validate_dataset.gd    # the dataset
 godot --path . -w --resolution 960x640 --script tests/test_recorder.gd  # 28, needs a display
 godot --path . -w --resolution 960x640 --script tests/test_tracing.gd   # 47, needs a display
-godot --path . -w --resolution 960x640 --script tests/test_menus.gd     # 45, needs a display
+godot --path . -w --resolution 960x640 --script tests/test_menus.gd     # 51, needs a display
 ```
 
-## What Step 7 added
+## What the catalog half added
 
-- `scripts/progress.gd` (`Progress`, static) — the stars the child keeps, in
-  `user://progress.json`. `load_progress()` / `save_progress()` /
-  `record(data, set, chr, stars)` / `record_and_save()` / `merge()` /
-  `summary(data, set)` / `total_stars()` / `clear()`. **Best stars, never the
-  latest**; a missing, corrupt or hand-edited file always ends in a usable
-  (possibly empty) dictionary and a console line, never a stopped app.
-  `Progress.path` is a **test seam** exactly like `CharSets.stroke_dir`.
-- `scripts/screens.gd` (`Screens`, static) — the navigation graph and the
-  scene swapping, in one place. `go_menu()`, `go_chars(set)`,
-  `go_trace(set, chr)`, and `record_result()`, which is what connects the
-  tracing scene's `scored` signal to the progress file. Scenes are swapped by
-  hand (instantiate → `setup` → free the old → add → set `current_scene`) so a
-  screen knows its subject *before* `_ready()`; the swap is deferred, so
-  calling it from a button's own `pressed` signal is safe.
-- `scenes/main_menu.tscn` + `scripts/main_menu.gd` — a button per set, built
-  from the catalog, with the set's own first character in the set's own font.
-  Signal `set_chosen(set_id)`.
-- `scenes/character_select.tscn` + `scripts/character_select.gd` — the grid,
-  built once per set. `show_set(id)` (works before or after `_ready`, like the
-  tracing scene's `open()`), signals `char_chosen(set_id, chr)` and
-  `back_requested()`. Columns = √(n · 2.2) clamped to 4–8; cells never taller
-  than wide; the character's font size and star height scale with the cell.
-  It reuses `star_row.gd` per button (`SR.new()`), and reads the set's stroke
-  file to tell recorded characters from ones not ready yet.
-- `scripts/tracing.gd` — new signal **`back_requested(set_id)`**, a big "◀ back"
-  at the bottom of the side panel, and a third button on the score card. That
-  last one is not decoration: the card sits over the side panel on purpose, so
-  it covers the panel's "back", and without its own the only ways out of a
-  celebration were "again" and "next". `test_menus.gd` is what caught it.
-  `◀ set / set ▶` are gone (the menu owns that decision); `◀ char / char ▶`
-  stayed; Esc now steps back a screen instead of quitting.
-- `tests/test_progress.gd` (70 checks, headless) and `tests/test_menus.gd`
-  (45 checks, needs a display).
+- **`CharSets.THAI_VOWEL_CHARS` / `THAI_VOWEL_NAMES`** — 21 marks in teaching
+  order: the fifteen สระ in recital order (ะ ั า ำ ิ ี ึ ื ุ ู เ แ โ ใ ไ), the
+  four tone marks, then ไม้ไต่คู้ and การันต์. The user chose the list and the
+  order; it is a teaching decision, not a Unicode one. Listed one quoted
+  character per line, because a run of combining code points in a single string
+  cannot be read or edited safely.
+- **`CharSets.display_form(set_id, chr)`** — how a character is drawn: itself,
+  or the mark on the dotted placeholder ◌ **on the side it is really written**.
+  The five leading vowels (`CharSets.THAI_LEADING_VOWELS` — เ แ โ ใ ไ) come
+  before it, everything else after: `เ◌`, but `◌ิ`. The old `"◌" + chr` in the
+  three scenes rendered a third of the set back to front. The recorder, the
+  character grid, the tracing scene and `--missing` all ask here now.
+- **`GlyphGuide.COMBINING_SIZE_RATIO`** (0.60, against `FONT_SIZE_RATIO` 0.76)
+  — a placeholder cluster is two characters stacked, and at the letter size the
+  tallest marks (◌็, ไ◌, ◌์) put ink up to 0.065 of the box **above the top
+  edge**. The recorder clamps every touch to the box, so that guide was asking
+  for a stroke nobody could draw. All 21 were measured in a SubViewport; at
+  0.60 every one is inside with at least 0.05 of the box to spare (tightest ◌็
+  at 0.052 from the top, lowest ◌ู at 0.868). **`GlyphGuide.apply()` picks the
+  ratio from the text itself** (`size_ratio_for()`, keyed on the placeholder)
+  rather than from an argument each scene passes: three call sites is three
+  chances to disagree, and a glyph resized under strokes already recorded
+  against it is silent damage. No recorded character contains the placeholder,
+  so the 116 are untouched — `test_char_sets.gd` asserts exactly that.
+- **`tests/validate_dataset.gd`** prints missing combining marks on their
+  placeholder too; bare, they attach to the separating space and the list comes
+  out as one smear.
+- Test updates: `test_char_sets.gd` (+9, now 54) covers the 21, that every one
+  is a single code point in U+0E30…U+0E4C, the names lining up with their
+  marks, `display_form` on both sides, and the guide-sizing invariant.
+  `test_menus.gd` (+6, now 51) replaces the "empty set is greyed" checks with
+  the state the set is really in — catalogued, nothing recorded — and walks
+  into it: the grid fills from the catalog, every character says "soon" and
+  refuses a finger, a leading vowel reads `เ◌`, **and "back" gets out again**.
+  That last one is the point: a set is in this state between every catalog
+  entry and its recording, and it must not be a dead end. `test_progress.gd`
+  swapped `thai_vowels` for an unknown set id in its "nothing to write" check.
 
-## What to build in Step 8
+## What is left: record the 21
 
-Per the plan: the remaining characters are **Thai vowels and tone marks**, and
-they need to be put in the catalog before they can be recorded.
+```sh
+godot --path . -- --recorder      # then ↑/↓ to "Thai vowels & tone marks"
+```
 
-1. **Fill `thai_vowels` in `scripts/char_sets.gd`.** It is currently
-   `_make_set(..., PackedStringArray(), PackedStringArray(), true)` — an empty
-   stub with `combining = true`. Which vowels and tone marks belong there is a
-   teaching decision, so **ask the user** rather than choosing from Unicode:
-   the usual school set is the สระ (–ะ –า –ิ –ี –ึ –ื –ุ –ู เ– แ– โ– ใ– ไ– …)
-   plus the four tone marks (–่ –้ –๊ –๋), but which forms a five-year-old is
-   taught first, in what order, and under what names is theirs to say.
-   `tests/test_char_sets.gd` will check the names array matches the chars.
-2. **Record them** with the Stroke Recorder — the user's hands, on the Surface
-   Go: `godot --path . -- --recorder`, then ↑/↓ to the vowel set. **Both the
-   recorder and the tracing scene already draw combining marks on the dotted
-   placeholder circle** (`"◌" + chr` when `CS.is_combining(id)`), and so does
-   the new character-select grid, so nothing needs adding for that.
-3. **Validate**: `godot --headless --path . --script tests/validate_dataset.gd`
-   after each batch, and `-- --missing thai_vowels` to see what is left.
+Draw, **SAVE**, **char ▶**, repeat; the side panel counts `n / 21 recorded`.
+After each batch:
 
-Notes that matter here:
+```sh
+godot --headless --path . --script tests/validate_dataset.gd
+godot --headless --path . --script tests/validate_dataset.gd -- --missing thai_vowels
+```
 
-- Vowels sit high or low against the placeholder rather than filling the box.
-  `glyph_guide.gd` places the *glyph*, and stroke points are normalized to the
-  box, not to their own bounding box — so a mark recorded high stays high. Do
-  not "helpfully" re-centre anything.
+Then **commit the batch** — this is the only data in the project nobody can
+regenerate.
+
+Notes that matter while recording:
+
+- Stroke order and direction are the data, not the shape. The recording
+  conventions already chosen: Thai consonants are one stroke starting at the
+  loop (หัว); English capitals lift only where the pen must; digits 1 and 4 are
+  two strokes, the rest one. Whatever is chosen for the vowels, keep it
+  consistent across the set — `scorer.gd` compares stroke by stroke.
+- Marks sit high or low against the placeholder rather than filling the box.
+  Stroke points are normalized to the **box**, not to the mark's own bounding
+  box, so a mark recorded high stays high. Do not "helpfully" re-centre it.
 - Several marks are a single small stroke. `dataset_validator.gd` warns (and
-  allows) a stroke under 2% of the box; expect more of those warnings than in
-  the other sets, and read them rather than silencing them.
-- A tiny mark is also the case where the tracing scene's `MIN_TRACE_LENGTH`
-  (24 px) and the scorer's `DOT_LENGTH` matter most. Trace a couple by finger
-  and check a legitimate short stroke is not being treated as a stray tap.
-- The menus need nothing: as soon as `thai_vowels` has characters, the main
-  menu button stops being greyed and the grid fills itself from the catalog.
-  Characters not yet recorded show as "soon" until they are.
+  allows) a stroke under 2% of the box; expect more of those warnings here than
+  in any other set, and read them rather than silencing them.
+- A tiny mark is also where the tracing scene's `MIN_TRACE_LENGTH` (24 px) and
+  the scorer's `DOT_LENGTH` matter most. **Trace ◌่ and ◌์ by finger early** —
+  before recording all 21 — and check a legitimate short stroke is not being
+  treated as a stray tap. If it is, that is a threshold to tune, not a design
+  to rework, and better found on the first mark than the twenty-first.
+- The menus need nothing. Each character stops saying "soon" as it is recorded.
 
-**GATE 8**: validation passes for all ~140 characters; every character-select
-grid is fully populated; the user spot-checks a handful of Thai vowels for
-sensible rendering and tracing.
+**GATE 8**: validation passes at 137/137; every character-select grid is fully
+populated; the user spot-checks a handful of Thai vowels for sensible rendering
+and tracing on the Surface Go.
 
 ## Pitfalls / conventions
 
@@ -178,8 +172,9 @@ sensible rendering and tracing.
   `dotted_guide.gd`, `star_row.gd`, `confetti.gd` and the two menu grids all
   hold to that, and it is why everything is smooth on the Surface Go's iGPU.
 - A windowed run plus `root.get_texture().get_image()` gives screenshots for
-  visual checks — worth doing for anything laid out in code.
-  `root.get_final_transform()` converts base coords → window coords for
-  synthetic input, but is **not** reliable for reading pixels back.
+  visual checks — worth doing for anything laid out in code, and it is how the
+  backwards `◌เ` was spotted. For *measuring* rendered ink, render into a
+  SubViewport instead: `root.get_final_transform()` converts base coords →
+  window coords for synthetic input but is not reliable for reading pixels back.
 - Update `README.md` and the memory file `writing-practice-step-progress`
   (status + next-step brief) before stopping at the gate.
