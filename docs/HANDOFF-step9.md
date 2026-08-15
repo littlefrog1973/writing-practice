@@ -7,31 +7,15 @@ the user on the Surface Go — under Fedora *and* under Windows 11.
 Start the session by running the eight suites below (about a minute) — that
 confirms the environment before anything is changed.
 
-**GATE 8 is not passed yet.** It is judged by finger on the Surface Go and is
-waiting on the user:
+**GATE 8 passed** (user confirmed by finger on the Surface Go, 2026-08-16).
 
-- **GATE 8**: the vowel grid is full, and a handful of Thai vowels render and
-  trace sensibly — `godot --path .` → Thai vowels & tone marks.
-
-Everything that can be checked without a finger has been: validation is clean
-at 137/137, a perfect trace of every one of the 137 scores three stars, the
-dotted guide sits on the glyph in screenshots of ◌ิ ◌ื เ◌ ไ◌ ◌่ ◌์, and the
-suites pass. What is left is how the small marks feel to draw. If something is
-wrong it is most likely one of:
-
-- a mark too small to trace comfortably — that is
-  `GlyphGuide.COMBINING_SIZE_RATIO` (0.60), and **raising it needs the vowels
-  re-recorded**, because strokes are stored relative to the box and the glyph
-  would move under them. Measure before changing it: at 0.76 the tallest marks
-  put ink outside the box entirely (see the Step 8 notes below).
-- a short stroke being ignored — that is `MIN_TRACE_LENGTH` (24 px) and
-  `MIN_TRACE_RATIO` (0.4) in `tracing.gd`, tuning, not redesign.
-- a mark scoring badly when it looked right — `scorer.gd`'s thresholds, which
-  work in fractions of the box and so are unaffected by the smaller glyph.
+**Step 9 is built.** Both presets export and the Linux build was checked
+against itself; what remains is GATE 9, which only the user can judge — and it
+needs the Windows partition as well as Fedora. See "What is left" below.
 
 ## Where the project stands (verified 2026-08-16)
 
-Steps 0–8 are built. GATES 0–7 are confirmed by the user; GATE 8 pending.
+Steps 0–9 are built. GATES 0–8 are confirmed by the user; GATE 9 pending.
 
 **The dataset is finished: 137 of 137 characters, validating clean** — 44 Thai
 consonants, 26 capitals, 26 small letters, 10 digits, 10 Thai numerals, 21 Thai
@@ -101,43 +85,73 @@ godot --path . -w --resolution 960x640 --script tests/test_menus.gd     # 51, ne
   recorded and checks it is not a dead end; the tracing suite traces a stroke
   short enough for the floor to give way.
 
-## What to build in Step 9
+## What Step 9 added
 
-1. **Export presets** — Linux x86_64 and Windows Desktop, embedded PCK, one
-   file each. `export_presets.cfg` is a project file and should be committed;
-   the *output* must not be, so add the export directory to `.gitignore`
-   before the first export (there is no entry yet — `.gitignore` currently has
-   only `.godot/`).
-2. **Document the one-line export commands** in the README, next to the run
-   commands, e.g.
-   `godot --headless --path . --export-release "Linux/X11" build/writing_practice`.
-3. **The user copies the .exe to the Windows partition and tests it there.**
+`export_presets.cfg` (committed — it is what defines the build) with two
+presets, each a single self-contained file with the PCK embedded:
 
-Things worth checking before handing over a build:
+```sh
+godot --headless --path . --export-release "Linux"           build/linux/writing_practice.x86_64
+godot --headless --path . --export-release "Windows Desktop" build/windows/writing_practice.exe
+```
 
-- `user://progress.json` is the only file the app writes, and in an export
-  `res://` is read-only — that is exactly why progress does not live beside the
-  stroke data. Confirm the stars persist across a relaunch of the *exported*
-  binary, not just the editor run.
-- Stroke files are loaded through `CharSets.path_of()`; an exported build
-  serves `foo.json.remap`, which `dataset_validator.gd` already tolerates but
-  `stroke_data.gd` reads through `FileAccess` on the `res://` path. Check a set
-  actually loads in the export rather than assuming it.
-- The fonts and their OFL licences are in `assets/`; keep the licence files in
-  the export.
-- `gl_compatibility` and the Surface Go's iGPU are why nothing allocates nodes
-  per frame. If the export stutters, look for that before looking at settings.
+`build/` is gitignored (76 MB and 112 MB, rebuilt in seconds).
 
-**GATE 9 (final)**: the Linux export runs standalone on Fedora with working
-touch; the Windows .exe runs on Win11 on the same machine with working touch,
-correct Thai rendering (looped Sarabun) and stars persisting; inking is smooth
-on both.
+- **`include_filter="data/strokes/*.json,assets/fonts/*/OFL.txt"`** is the
+  preset line that matters. **Godot does not import `.json` as a resource**, so
+  `export_filter="all_resources"` ships a build with the entire recorded
+  dataset missing — a failure that looks perfect in every log and only appears
+  when a child taps a character and gets nothing. The OFL licences are plain
+  text for the same reason and must travel with the fonts.
+- `exclude_filter="docs/*,tests/*"`: the suites are `.gd` files and were being
+  packed into the app a child runs.
+- Verified against the built binary rather than the export log — it boots from
+  its own embedded pack and reports the dataset:
+
+  ```sh
+  build/linux/writing_practice.x86_64 --quit-after 120 -- --recorder
+  # [recorder] Set: Thai consonants (44 characters, 44 recorded).
+  ```
+
+  `--quit-after` is load-bearing: an exported build's stdout is block-buffered
+  when redirected, so one stopped with `timeout` or Ctrl-C dies without
+  flushing a line and looks completely silent. That cost half an hour here.
+  The same goes for `user://logs/`, which is written on a clean exit.
+
+## What is left: GATE 9 (final), on the device
+
+Only the user can judge it, and it needs both operating systems on the Surface
+Go:
+
+- **Fedora**: `build/linux/writing_practice.x86_64` run standalone, outside the
+  editor — touch working, Thai rendering with the looped Sarabun, smooth
+  inking, stars persisting across a relaunch of the *exported* binary.
+- **Windows 11**: copy `build/windows/writing_practice.exe` to the Windows
+  partition and run it there. Same checks.
+
+Worth knowing before that session:
+
+- `user://progress.json` is the only file the app writes (in an export `res://`
+  is read-only, which is exactly why progress does not live beside the stroke
+  data). It resolves per operating system —
+  `~/.local/share/godot/app_userdata/Writing Practice/` on Fedora,
+  `%APPDATA%\Godot\app_userdata\Writing Practice\` on Windows — so **booting
+  Windows does not lose the Fedora stars; it starts a second, separate
+  collection of them.** If that surprises the child, it is a design decision to
+  revisit, not a bug to hunt.
+- The log file in that same directory is the only console an exported build
+  has. Ask for it before theorising.
+- `gl_compatibility` and the Surface Go's iGPU are why nothing in the app
+  allocates nodes per frame. If the export stutters, look for a new per-frame
+  allocation before looking at engine settings.
+- Nothing in Step 9 touched the app's behaviour, so a failure that is not about
+  packaging is a Step 5–8 fix, and the eight suites still cover it.
 
 ## Pitfalls / conventions
 
 - `/tmp` is a 3.9 GB tmpfs shared with the tool harness — never download or
-  extract big files there; use `/home`. Export output belongs under the project
-  (gitignored), not in `/tmp`.
+  extract big files there; use `/home`. Export output belongs in `build/`
+  (gitignored), not in `/tmp`: the two builds are 188 MB together.
 - Scripts refer to each other with `preload()` constants (`CS`, `SD`, `GG`,
   `SC`, `TB`, `PR`, `SR`, `SNS`), not by `class_name`: the global class cache
   lives in the gitignored `.godot/` directory and is only written by the
