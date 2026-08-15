@@ -1,8 +1,7 @@
 # Hand-off: implement Step 4 — author the starter dataset
 
-Read this first, then the plan file
-`/home/littlefrog/.claude/plans/i-want-to-make-prancy-shannon.md` (Step 4
-section). Stop at GATE 4 for user confirmation before touching Step 5.
+Read this first, then the plan file `docs/PLAN.md` (Step 4 section). Stop at
+GATE 4 for user confirmation before touching Step 5.
 
 Start the session by running the three test suites below (30 seconds, one
 opens a window) — that confirms the environment before anything is changed.

@@ -1,9 +1,7 @@
 # Hand-off: implement Step 3 — Stroke Recorder (authoring tool)
 
-Read this first, then the plan file
-`/home/littlefrog/.claude/plans/i-want-to-make-prancy-shannon.md` (Step 3
-section). Stop at GATE 3 for user confirmation on the Surface Go before
-touching Step 4.
+Read this first, then the plan file `docs/PLAN.md` (Step 3 section). Stop at
+GATE 3 for user confirmation on the Surface Go before touching Step 4.
 
 ## Where the project stands (verified)
 
