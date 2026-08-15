@@ -85,9 +85,12 @@ desktop work: `R` watch again, `Space` start over, ←/→ character, ↑/↓ se
 
 There is no fail state: a finished stroke always advances, however wobbly. The
 one thing that does not advance is a touch shorter than 24 px — a stray tap or
-a resting palm rather than an attempt — and even that check is skipped when the
-guide stroke is itself a dot (the dot on an "i"). The child's strokes are kept
-normalized in `_traced`, which is what the scorer reads.
+a resting palm rather than an attempt. That floor is never more than **40% of
+the stroke being asked for**, though, and is skipped entirely when the guide
+stroke is itself a dot (the dot on an "i"): Step 8's tone marks are short
+enough that a flat 24 px would reject better than half of a real attempt, and
+being ignored is the one response the app must never give. The child's strokes
+are kept normalized in `_traced`, which is what the scorer reads.
 
 The reference glyph goes through `scripts/glyph_guide.gd` into a **square** box,
 exactly as the recorder does — stroke points are normalized against the box, so
@@ -236,8 +239,12 @@ strokes already recorded against it is silent damage; no recorded character
 contains the placeholder, so nothing outside this set can move.
 
 Vowels sit high or low against the placeholder rather than filling the box, and
-several are a single small stroke — expect more "a dot?" warnings from the
-dataset check here than elsewhere, and read them rather than silencing them.
+several are a single small stroke: the third stroke of ◌ื is 41 px in a 960 px
+box, where the shortest real stroke in the other five sets is Q's tail at
+184 px. That is what the stray-tap floor above is proportional for. None of
+them is short enough to be warned about by the dataset check.
+
+With them recorded the dataset is **complete: 137 of 137 characters**.
 
 ## Stroke Recorder (dev tool, Step 3)
 
@@ -313,7 +320,8 @@ own, "watch again" replaying without losing traced strokes, a stroke advancing
 the state machine, ink landing inside the box, stray taps and out-of-box
 touches being ignored, the score card (three stars for a trace on the guide,
 one for a scribble, the stars popping in order, the confetti, the `scored`
-signal), the "again" and "next" buttons, and a character with no strokes yet.
+signal), the "again" and "next" buttons, a character with no strokes yet, and a
+stroke short enough (a tone mark) that the stray-tap floor has to give way.
 It turns vsync off for the run: a test window the compositor considers hidden
 is throttled to a crawl, and with the frames unthrottled the suite takes about
 five seconds instead of minutes. Anything the scene does on a clock is waited
@@ -347,7 +355,8 @@ godot --headless --path . --script tests/validate_dataset.gd
 ```
 
 Checks the recorded data rather than the code — run it after every recording
-batch, and again in Step 8 to confirm the dataset is finished. It walks every
+batch. It is what confirmed the dataset finished at 137/137 in Step 8, and it
+stays the check to run against any re-recording. It walks every
 `data/strokes/*.json`, reports **all** problems at once, and prints a per-set
 coverage table:
 
