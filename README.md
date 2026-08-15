@@ -64,8 +64,8 @@ states:
 2. **trace** — the stroke to draw now is a line of dots with an orange start
    marker and a direction arrow, strokes still to come are dimmed, and finished
    ones are the child's own ink. Lifting the finger ends a stroke and moves on;
-3. **score** — a placeholder card with a **next ▶** button. Stars, sounds and
-   `scorer.gd` are Step 6; nothing here judges the tracing yet.
+3. **score** — 1–3 stars, popping in one at a time with a note each, confetti,
+   a cheerful line and big **↺ again** / **next ▶** buttons (Step 6, below).
 
 **▶ watch again** replays the demo and comes back to the same stroke, keeping
 what has been traced; **↺ start over** wipes the ink and starts the character
@@ -78,7 +78,7 @@ There is no fail state: a finished stroke always advances, however wobbly. The
 one thing that does not advance is a touch shorter than 24 px — a stray tap or
 a resting palm rather than an attempt — and even that check is skipped when the
 guide stroke is itself a dot (the dot on an "i"). The child's strokes are kept
-normalized in `_traced`, which is what Step 6 will score.
+normalized in `_traced`, which is what the scorer reads.
 
 The reference glyph goes through `scripts/glyph_guide.gd` into a **square** box,
 exactly as the recorder does — stroke points are normalized against the box, so
@@ -91,6 +91,50 @@ only in `set_strokes()`; while playing it does nothing per frame but reassign
 stutter on the Surface Go's iGPU looks like. `scripts/dotted_guide.gd` draws the
 dotted line — `Line2D` has no dash mode, so the stroke is resampled to a fixed
 spacing and a dot is drawn at each sample, redrawn only when the stroke changes.
+
+## Scoring & feedback (Step 6)
+
+When the last stroke is finished, `scripts/scorer.gd` compares what the child
+drew with the recorded guide — both are normalized to the same 0–1 box, so the
+scoring works in fractions of the drawing square and never sees a screen size.
+Per stroke:
+
+- **coverage** — how much of the guide the child's line passed within ~5% of
+  the box (≈48 px). This is what notices a stroke that stopped half way.
+- **deviation** — the mean distance from the child's line to the guide. This is
+  what separates neat from wobbly; a mean of ~1.8% of the box or less is
+  perfect, ~6.5% or more scores nothing.
+- **direction** — the stroke sampled against the guide, and against the guide
+  reversed; the better fit is the way it was drawn. Comparing endpoints alone
+  would call a circle drawn backwards correct. Stroke *order* cannot be wrong:
+  the trace state asks for one stroke at a time.
+- **sprawl** — how long the stroke ran compared with the guide, as a multiplier
+  over the rest. Coverage and deviation between them are still fooled by a
+  scribble drawn along the letter; nothing about a scribble is short.
+
+Those become 1–3 stars. Thresholds are deliberately child-sized and live at the
+top of `scorer.gd` — a careful trace earns three, a sloppy but on-letter one
+earns two, a scribble earns one. **One star is the floor**: there is no
+zero-star result, no "wrong", and the card never blocks the way on. The message
+under the stars for one star is an invitation to watch and try again.
+
+The card itself is `ScoreOverlay` in `scenes/tracing.tscn`, placed over the
+side panel rather than the drawing box so the writing being praised stays on
+screen. `scripts/star_row.gd` draws the stars as polygons (neither font is
+guaranteed to carry "★") and pops them in one at a time; each landing star
+rings its own note and the last one brings a flourish.
+
+The sounds are **synthesized in `scripts/tone_bank.gd`**, not shipped as audio
+files: a few harmonic partials with an exponential decay, rendered to
+`AudioStreamWAV` when the scene loads (~0.6 s, before anything is on screen).
+That was a licensing decision as much as a technical one — every other asset
+here came with its licence file beside it, and a downloaded sound effect is the
+easiest way to end up with an asset nobody can account for later. There is no
+`assets/audio/` directory and nothing to attribute.
+
+`scripts/confetti.gd` is one `CPUParticles2D` — configured in the scene,
+`restart()`ed per celebration, never a node created per character — that builds
+its own particle texture in code for the same reason.
 
 ## Stroke Recorder (dev tool, Step 3)
 
@@ -136,13 +180,17 @@ Headless suites (no display needed):
 ```sh
 godot --headless --path . --script tests/test_stroke_data.gd
 godot --headless --path . --script tests/test_char_sets.gd
+godot --headless --path . --script tests/test_scorer.gd
 ```
 
 `test_stroke_data.gd` exercises `scripts/stroke_data.gd` (stroke JSON
 load/save/validation, arc-length resampling, 0–1 box normalization, entry
 merging, partial strokes). `test_char_sets.gd` checks the character catalog,
 that every stroke file agrees with it, and that the dataset validator really
-rejects bad entries.
+rejects bad entries. `test_scorer.gd` scores synthetic traces — exact, wobbly,
+sloppy, backwards, half-drawn, scribbled — against a synthetic guide, and
+checks the generated sounds; both `scorer.gd` and `tone_bank.gd` are static and
+pure, which is what lets it run with no display.
 
 The recorder and tracing suites drive the real scenes with synthetic touch
 events, so they need a display and open a small window for a few seconds:
@@ -155,7 +203,13 @@ godot --path . -w --resolution 960x640 --script tests/test_tracing.gd
 `test_tracing.gd` covers the demo advancing stroke by stroke and ending on its
 own, "watch again" replaying without losing traced strokes, a stroke advancing
 the state machine, ink landing inside the box, stray taps and out-of-box
-touches being ignored, the score stub, and a character with no strokes yet.
+touches being ignored, the score card (three stars for a trace on the guide,
+one for a scribble, the stars popping in order, the confetti, the `scored`
+signal), the "again" and "next" buttons, and a character with no strokes yet.
+It turns vsync off for the run: a test window the compositor considers hidden
+is throttled to a crawl, and with the frames unthrottled the suite takes about
+five seconds instead of minutes. Anything the scene does on a clock is waited
+for in seconds, never in frames.
 
 Both point `CharSets.stroke_dir` at a scratch directory under `user://`, so
 they never write to — and never depend on what has been recorded in —

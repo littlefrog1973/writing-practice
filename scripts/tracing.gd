@@ -9,11 +9,14 @@ extends Control
 ##   TRACE  the current stroke is a dotted guide with a start marker and a
 ##          direction arrow, strokes still to come are dimmed, finished ones
 ##          are the child's own ink. Lifting the finger ends a stroke.
-##   SCORE  a placeholder with a "next" button — stars, sounds and scorer.gd
-##          are Step 6. Nothing here judges how good the tracing was.
+##   SCORE  scorer.gd rates the tracing 1–3 stars; the stars pop in one at a
+##          time with a note each, confetti falls, and the card offers "again"
+##          or "next".
 ##
 ## There is no fail state anywhere: a finished stroke always advances, however
-## it looks. The only thing that does not advance is a stroke shorter than
+## it looks, and the score card never blocks the way on. One star is the floor,
+## not a failure — it comes with an invitation to write the character again.
+## The only thing that does not advance is a stroke shorter than
 ## MIN_TRACE_LENGTH — a stray tap, not an attempt — and even that is skipped
 ## when the guide stroke is itself a dot (the dot on an "i").
 ##
@@ -28,9 +31,16 @@ extends Control
 const CS := preload("res://scripts/char_sets.gd")
 const SD := preload("res://scripts/stroke_data.gd")
 const GG := preload("res://scripts/glyph_guide.gd")
+const SC := preload("res://scripts/scorer.gd")
+const TB := preload("res://scripts/tone_bank.gd")
 
 const SARABUN: FontFile = preload("res://assets/fonts/sarabun/Sarabun-Regular.ttf")
 const ANDIKA: FontFile = preload("res://assets/fonts/andika/Andika-Regular.ttf")
+
+## Emitted when a character has been traced and scored. Step 7's progress file
+## is the intended listener: this scene deliberately keeps no state of its own
+## beyond the character in front of the child.
+signal scored(set_id: String, chr: String, stars: int)
 
 enum State {
 	EMPTY,  ## The character has no recorded strokes — nothing to trace.
@@ -63,7 +73,17 @@ const MIN_TRACE_LENGTH := 24.0  ## Below this a touch is a stray tap, not a stro
 @onready var _progress: Label = $SidePanel/Margin/VBox/Progress
 @onready var _status: Label = $Status
 @onready var _score_overlay: Control = $ScoreOverlay
+@onready var _score_stars: Control = $ScoreOverlay/Card/Margin/VBox/Stars
 @onready var _score_message: Label = $ScoreOverlay/Card/Margin/VBox/Message
+@onready var _score_hint: Label = $ScoreOverlay/Card/Margin/VBox/Hint
+@onready var _confetti: CPUParticles2D = $ScoreOverlay/Confetti
+@onready var _fanfare_player: AudioStreamPlayer = $Sounds/Fanfare
+## One player per star so the three notes can ring together as a chord.
+@onready var _star_players: Array[AudioStreamPlayer] = [
+	$Sounds/Star1 as AudioStreamPlayer,
+	$Sounds/Star2 as AudioStreamPlayer,
+	$Sounds/Star3 as AudioStreamPlayer,
+]
 
 var _set_ids := PackedStringArray()
 var _set_index := 0
@@ -83,11 +103,19 @@ var _touch := -1  ## Touch index owning the stroke in progress, -1 when idle.
 var _pending_set := ""  ## Character requested before the scene was ready.
 var _pending_char := ""
 
+var _stars := 0  ## Stars awarded for the character on screen, 0 before scoring.
+## One flourish per star count, synthesized once at startup rather than per
+## celebration — building a couple of seconds of audio mid-animation is exactly
+## the kind of hitch the demo was kept allocation-free to avoid.
+var _fanfares: Array[AudioStreamWAV] = []
+
 
 func _ready() -> void:
 	_set_ids = CS.recordable_ids()
 	_live_line = _make_line(_ink_layer, LIVE_COLOR, INK_WIDTH)
 	_demo.finished.connect(_on_demo_finished)
+	_score_stars.star_popped.connect(_on_star_popped)
+	_build_sounds()
 	_connect_buttons()
 	if _set_ids.is_empty():
 		_say("No character sets with characters in the catalog — nothing to trace.")
@@ -161,20 +189,46 @@ func _enter_trace() -> void:
 	_say("Your turn — start at the orange dot.")
 
 
+## Score what the child drew and celebrate it. The card sits over the side
+## panel, not over the drawing box, so the writing being praised stays in sight.
 func _enter_score() -> void:
 	_state = State.SCORE
 	_cancel_live_stroke()
 	_dotted.clear()
 	_upcoming.visible = false
-	_score_message.text = "You wrote %s!" % _current_char()
+	var result: Dictionary = SC.score(_strokes, _traced)
+	if not result.ok:
+		# Nothing here is worth stopping a child for: keep the card cheerful and
+		# leave the diagnosis in the console.
+		push_error("[tracing] %s" % result.error)
+		result = {"stars": 1, "message": "You wrote %s!" % _current_char(), "hint": ""}
+	_stars = result.stars
+	_score_message.text = result.message
+	_score_hint.text = result.hint
+	_score_stars.set_stars(_stars, SC.MAX_STARS)
 	_score_overlay.visible = true
+	_score_stars.celebrate()
+	_confetti.celebrate()
+	_fanfare_player.stream = _fanfares[_stars - 1]
 	_refresh_labels()
-	_say("Done — stars and sounds arrive in Step 6.")
+	# Plain words, not "★": the status line uses the Thai guide font, which
+	# carries no such glyph and would draw a tofu box.
+	_say("%d %s — %s" % [_stars, "star" if _stars == 1 else "stars", result.message])
+	scored.emit(_current_set_id(), _current_char(), _stars)
 
 
 func _on_demo_finished() -> void:
 	if _state == State.DEMO:
 		_enter_trace()
+
+
+## A star has just landed on the card: ring its note, and let the flourish
+## follow the last one.
+func _on_star_popped(index: int) -> void:
+	if index < _star_players.size():
+		_star_players[index].play()
+	if index == _stars - 1:
+		_fanfare_player.play()
 
 
 # --- input -------------------------------------------------------------------
@@ -261,13 +315,16 @@ func _cancel_live_stroke() -> void:
 # --- buttons -----------------------------------------------------------------
 
 func _on_watch_again() -> void:
+	_hush()
 	if _state == State.EMPTY:
 		return
 	_enter_demo()
 
 
 ## Wipe the child's ink and trace the character again from the first stroke.
+## This is also the score card's "again" button.
 func _on_start_over() -> void:
+	_hush()
 	if _state == State.EMPTY:
 		return
 	_clear_ink()
@@ -276,6 +333,28 @@ func _on_start_over() -> void:
 
 func _on_next() -> void:
 	_step_char(1)
+
+
+# --- celebration -------------------------------------------------------------
+
+## Synthesize the score sounds once, at startup. See tone_bank.gd for why they
+## are generated rather than shipped as audio files.
+func _build_sounds() -> void:
+	for i in _star_players.size():
+		_star_players[i].stream = TB.star_tone(i)
+	for stars in range(1, SC.MAX_STARS + 1):
+		_fanfares.append(TB.fanfare(stars))
+
+
+## End the celebration early — the child pressed "again" or moved on while the
+## stars were still landing. Settling the star row also stops the pops that
+## would otherwise keep ringing notes over the next character.
+func _hush() -> void:
+	for player in _star_players:
+		player.stop()
+	_fanfare_player.stop()
+	_stars = 0
+	_score_stars.set_stars(0, SC.MAX_STARS)
 
 
 func _step_char(delta: int) -> void:
@@ -308,6 +387,7 @@ func _load_set(index: int) -> void:
 
 func _open_char(index: int) -> void:
 	_demo.stop()
+	_hush()
 	_score_overlay.visible = false
 	_char_index = wrapi(index, 0, _chars().size())
 	_strokes = []
@@ -385,7 +465,7 @@ func _refresh_labels() -> void:
 		State.TRACE:
 			_stroke_info.text = "stroke %d of %d" % [_stroke_index + 1, _strokes.size()]
 		State.SCORE:
-			_stroke_info.text = "done!"
+			_stroke_info.text = "%d of %d stars" % [_stars, SC.MAX_STARS]
 		_:
 			_stroke_info.text = "—"
 	_progress.text = "%d of %d recorded in %s" % [_entries.size(), _chars().size(),
@@ -460,4 +540,8 @@ func _connect_buttons() -> void:
 	vbox.get_node("SetNav/PrevSet").pressed.connect(_step_set.bind(-1))
 	vbox.get_node("SetNav/NextSet").pressed.connect(_step_set.bind(1))
 	vbox.get_node("Quit").pressed.connect(get_tree().quit.bind(0))
-	$ScoreOverlay/Card/Margin/VBox/Next.pressed.connect(_on_next)
+	var buttons := $ScoreOverlay/Card/Margin/VBox/Buttons
+	# "again" is the same action as "start over": wipe the ink and trace the
+	# character again — no demo first, they have just watched and written it.
+	buttons.get_node("Again").pressed.connect(_on_start_over)
+	buttons.get_node("Next").pressed.connect(_on_next)

@@ -28,6 +28,13 @@ const NUMBER_OFFSET := Vector2(18.0, -72.0)
 var speed := 520.0  ## Px per second the demo hand travels — a child's pace.
 var pause := 0.5  ## Seconds of stillness between strokes, and after the last.
 
+## Longest frame the demo will believe. A hitch — loading the next character,
+## the compositor stalling, Windows scheduling something else — arrives as one
+## huge delta, and moving speed × delta through it teleports the hand half way
+## across the letter. Slowing down through a stall is the right answer for an
+## animation whose whole job is showing the order a stroke is drawn in.
+const MAX_DELTA := 1.0 / 20.0
+
 var _strokes: Array = []  ## Array[PackedVector2Array], screen space.
 var _lengths := PackedFloat32Array()  ## Path length per stroke, precomputed.
 var _lines: Array[Line2D] = []
@@ -47,6 +54,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _index < 0:
 		return
+	delta = minf(delta, MAX_DELTA)
 	if _wait > 0.0:
 		_wait -= delta
 		if _wait > 0.0:

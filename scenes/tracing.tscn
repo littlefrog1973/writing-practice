@@ -1,9 +1,11 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
 [ext_resource type="Script" path="res://scripts/tracing.gd" id="2_script"]
 [ext_resource type="Script" path="res://scripts/stroke_animator.gd" id="3_animator"]
 [ext_resource type="Script" path="res://scripts/dotted_guide.gd" id="4_dotted"]
+[ext_resource type="Script" path="res://scripts/star_row.gd" id="5_stars"]
+[ext_resource type="Script" path="res://scripts/confetti.gd" id="6_confetti"]
 
 [sub_resource type="Theme" id="Theme_main"]
 default_font = ExtResource("1_sarabun")
@@ -39,6 +41,14 @@ corner_radius_top_left = 36
 corner_radius_top_right = 36
 corner_radius_bottom_right = 36
 corner_radius_bottom_left = 36
+
+[sub_resource type="Gradient" id="Gradient_confetti"]
+offsets = PackedFloat32Array(0, 0.2, 0.4, 0.6, 0.8, 1)
+colors = PackedColorArray(1, 0.78, 0.16, 1, 0.95, 0.45, 0.3, 1, 0.4, 0.75, 0.95, 1, 0.55, 0.85, 0.4, 1, 0.85, 0.5, 0.9, 1, 1, 0.6, 0.2, 1)
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+offsets = PackedFloat32Array(0, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
 [node name="Tracing" type="Control"]
 layout_mode = 3
@@ -260,6 +270,12 @@ theme_override_constants/margin_bottom = 48
 layout_mode = 2
 theme_override_constants/separation = 28
 
+[node name="Stars" type="Control" parent="ScoreOverlay/Card/Margin/VBox"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_stars")
+
 [node name="Message" type="Label" parent="ScoreOverlay/Card/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -270,16 +286,63 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Placeholder" type="Label" parent="ScoreOverlay/Card/Margin/VBox"]
+[node name="Hint" type="Label" parent="ScoreOverlay/Card/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.42, 0.35, 1)
-theme_override_font_sizes/font_size = 32
-text = "(stars, sounds and scoring arrive in Step 6)"
+theme_override_colors/font_color = Color(0.42, 0.4, 0.34, 1)
+theme_override_font_sizes/font_size = 34
+text = "…"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 3
 
-[node name="Next" type="Button" parent="ScoreOverlay/Card/Margin/VBox"]
+[node name="Buttons" type="HBoxContainer" parent="ScoreOverlay/Card/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Again" type="Button" parent="ScoreOverlay/Card/Margin/VBox/Buttons"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 56
+text = "↺ again"
+
+[node name="Next" type="Button" parent="ScoreOverlay/Card/Margin/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 56
 text = "next ▶"
+
+[node name="Confetti" type="CPUParticles2D" parent="ScoreOverlay"]
+position = Vector2(960, 30)
+emitting = false
+amount = 64
+lifetime = 2.6
+one_shot = true
+explosiveness = 0.42
+randomness = 0.6
+emission_shape = 3
+emission_rect_extents = Vector2(900, 8)
+direction = Vector2(0, 1)
+spread = 22.0
+gravity = Vector2(0, 620)
+initial_velocity_min = 90.0
+initial_velocity_max = 320.0
+angular_velocity_min = -260.0
+angular_velocity_max = 260.0
+scale_amount_min = 0.7
+scale_amount_max = 1.5
+color_initial_ramp = SubResource("Gradient_confetti")
+color_ramp = SubResource("Gradient_fade")
+script = ExtResource("6_confetti")
+
+[node name="Sounds" type="Node" parent="."]
+
+[node name="Star1" type="AudioStreamPlayer" parent="Sounds"]
+
+[node name="Star2" type="AudioStreamPlayer" parent="Sounds"]
+
+[node name="Star3" type="AudioStreamPlayer" parent="Sounds"]
+
+[node name="Fanfare" type="AudioStreamPlayer" parent="Sounds"]
+volume_db = -2.0
