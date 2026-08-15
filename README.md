@@ -36,8 +36,9 @@ from the command line (everything after the bare `--` is a user arg).
 | Command | Starts |
 | --- | --- |
 | `godot --path .` | the Step 1 font/touch smoke test (later: the main menu) |
+| `godot --path . -- --tracing` | the **tracing scene** — demo, then trace |
 | `godot --path . -- --recorder` | the **Stroke Recorder** authoring tool |
-| `godot --path . -- --recorder --mouse` | …with the mouse drawing as a finger |
+| `godot --path . -- --tracing --mouse` | …with the mouse drawing as a finger (works with `--recorder` too) |
 
 The font/touch smoke test shows Thai (Sarabun, looped), English (Andika), and
 Thai numerals in large type, and prints every
@@ -48,6 +49,48 @@ Touch settings: `emulate_mouse_from_touch = true` (UI buttons respond to
 touch); `emulate_touch_from_mouse` stays **off** in the project settings —
 `--mouse` turns it on at runtime for desktop work, so real touch handling is
 never masked in the app the child uses.
+
+## Tracing scene (Step 5)
+
+```sh
+godot --path . -- --tracing
+```
+
+The first screen the child actually uses. One character at a time, in three
+states:
+
+1. **demo** — the character draws itself stroke by stroke, an orange finger-dot
+   leading each line and the stroke's order number appearing with it;
+2. **trace** — the stroke to draw now is a line of dots with an orange start
+   marker and a direction arrow, strokes still to come are dimmed, and finished
+   ones are the child's own ink. Lifting the finger ends a stroke and moves on;
+3. **score** — a placeholder card with a **next ▶** button. Stars, sounds and
+   `scorer.gd` are Step 6; nothing here judges the tracing yet.
+
+**▶ watch again** replays the demo and comes back to the same stroke, keeping
+what has been traced; **↺ start over** wipes the ink and starts the character
+again. **◀ char / char ▶** and **◀ set / set ▶** move through the catalog —
+they exist because the menus that will lead here are Step 7. Keyboard
+equivalents for desktop work: `R` watch again, `Space` start over, ←/→
+character, ↑/↓ set, `Esc` quit.
+
+There is no fail state: a finished stroke always advances, however wobbly. The
+one thing that does not advance is a touch shorter than 24 px — a stray tap or
+a resting palm rather than an attempt — and even that check is skipped when the
+guide stroke is itself a dot (the dot on an "i"). The child's strokes are kept
+normalized in `_traced`, which is what Step 6 will score.
+
+The reference glyph goes through `scripts/glyph_guide.gd` into a **square** box,
+exactly as the recorder does — stroke points are normalized against the box, so
+a box of another shape would slide every recorded stroke off the glyph.
+
+`scripts/stroke_animator.gd` is the demo animation as a reusable node
+(`set_strokes()`, `play()`, `stop()`, a `finished` signal). It allocates nodes
+only in `set_strokes()`; while playing it does nothing per frame but reassign
+`Line2D.points`, because freeing and recreating nodes at 60 fps is what visible
+stutter on the Surface Go's iGPU looks like. `scripts/dotted_guide.gd` draws the
+dotted line — `Line2D` has no dash mode, so the stroke is resampled to a fixed
+spacing and a dot is drawn at each sample, redrawn only when the stroke changes.
 
 ## Stroke Recorder (dev tool, Step 3)
 
@@ -101,16 +144,25 @@ merging, partial strokes). `test_char_sets.gd` checks the character catalog,
 that every stroke file agrees with it, and that the dataset validator really
 rejects bad entries.
 
-The recorder suite drives the real scene with synthetic touch events, so it
-needs a display and opens a small window for a few seconds:
+The recorder and tracing suites drive the real scenes with synthetic touch
+events, so they need a display and open a small window for a few seconds:
 
 ```sh
 godot --path . -w --resolution 960x640 --script tests/test_recorder.gd
+godot --path . -w --resolution 960x640 --script tests/test_tracing.gd
 ```
 
-It records into a scratch directory under `user://` (by pointing
-`CharSets.stroke_dir` there), so it never writes to — and never depends on
-what has been recorded in — `data/strokes/`.
+`test_tracing.gd` covers the demo advancing stroke by stroke and ending on its
+own, "watch again" replaying without losing traced strokes, a stroke advancing
+the state machine, ink landing inside the box, stray taps and out-of-box
+touches being ignored, the score stub, and a character with no strokes yet.
+
+Both point `CharSets.stroke_dir` at a scratch directory under `user://`, so
+they never write to — and never depend on what has been recorded in —
+`data/strokes/`. The tracing suite writes its own two-character file there and
+checks the real dataset's SHA-256s afterwards. **Any new test that drives a
+scene which reads or writes stroke files must do the same**, or it will start
+failing the day that character is re-recorded.
 
 All exit non-zero on failure.
 
