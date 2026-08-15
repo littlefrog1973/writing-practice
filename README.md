@@ -28,17 +28,23 @@ godot --path /home/littlefrog/projects/writing_practice
 ```
 
 Launches fullscreen (1920×1280 base resolution, `canvas_items` stretch,
-Compatibility renderer). Press **Esc** to quit.
+Compatibility renderer) on the main menu. Press **Esc** to step back a screen,
+and again to quit.
 
 `scenes/main.tscn` is the main scene: a boot router that picks what to start
 from the command line (everything after the bare `--` is a user arg).
 
 | Command | Starts |
 | --- | --- |
-| `godot --path .` | the Step 1 font/touch smoke test (later: the main menu) |
-| `godot --path . -- --tracing` | the **tracing scene** — demo, then trace |
+| `godot --path .` | the **main menu** — the app proper |
+| `godot --path . -- --tracing` | straight into the **tracing scene** on the first character |
 | `godot --path . -- --recorder` | the **Stroke Recorder** authoring tool |
+| `godot --path . -- --fonts` | the Step 1 font/touch smoke test |
 | `godot --path . -- --tracing --mouse` | …with the mouse drawing as a finger (works with `--recorder` too) |
+
+Every route goes through `scripts/screens.gd`, so a scene started from the
+command line is wired up exactly as the menu would have wired it: `--tracing`
+records stars and its "back" button reaches the character grid.
 
 The font/touch smoke test shows Thai (Sarabun, looped), English (Andika), and
 Thai numerals in large type, and prints every
@@ -65,14 +71,17 @@ states:
    marker and a direction arrow, strokes still to come are dimmed, and finished
    ones are the child's own ink. Lifting the finger ends a stroke and moves on;
 3. **score** — 1–3 stars, popping in one at a time with a note each, confetti,
-   a cheerful line and big **↺ again** / **next ▶** buttons (Step 6, below).
+   a cheerful line and big **◀ back** / **↺ again** / **next ▶** buttons
+   (Step 6, below).
 
 **▶ watch again** replays the demo and comes back to the same stroke, keeping
 what has been traced; **↺ start over** wipes the ink and starts the character
-again. **◀ char / char ▶** and **◀ set / set ▶** move through the catalog —
-they exist because the menus that will lead here are Step 7. Keyboard
-equivalents for desktop work: `R` watch again, `Space` start over, ←/→
-character, ↑/↓ set, `Esc` quit.
+again; **◀ back** returns to the character grid. **◀ char / char ▶** move to
+the neighbouring character in the set — they stayed after Step 7 because
+finishing "ก" and wanting "ข" should not mean a trip back to the grid, while
+changing *set* is a decision the menu now owns. Keyboard equivalents for
+desktop work: `R` watch again, `Space` start over, ←/→ character, ↑/↓ set,
+`Esc` back.
 
 There is no fail state: a finished stroke always advances, however wobbly. The
 one thing that does not advance is a touch shorter than 24 px — a stray tap or
@@ -120,7 +129,8 @@ under the stars for one star is an invitation to watch and try again.
 
 The card itself is `ScoreOverlay` in `scenes/tracing.tscn`, placed over the
 side panel rather than the drawing box so the writing being praised stays on
-screen. `scripts/star_row.gd` draws the stars as polygons (neither font is
+screen — which is why it carries its own **◀ back**: it covers the panel's one,
+and "again" and "next" must not be the only ways out of a celebration. `scripts/star_row.gd` draws the stars as polygons (neither font is
 guaranteed to carry "★") and pops them in one at a time; each landing star
 rings its own note and the last one brings a flourish.
 
@@ -135,6 +145,63 @@ easiest way to end up with an asset nobody can account for later. There is no
 `scripts/confetti.gd` is one `CPUParticles2D` — configured in the scene,
 `restart()`ed per celebration, never a node created per character — that builds
 its own particle texture in code for the same reason.
+
+## Menus and progress (Step 7)
+
+```sh
+godot --path .
+```
+
+Three screens, one direction with a way back at every step:
+
+```
+main menu  ──set──▶  character select  ──character──▶  tracing
+     ◀──── back ────         ◀──── back ────
+```
+
+- **`scenes/main_menu.tscn`** — one big button per set, each showing the set's
+  own first character in the set's own font, its name, and how far the child
+  has got. The buttons are built from `char_sets.gd`, not laid out in the
+  scene, so a set added to the catalog appears here with nothing to edit. A set
+  with no characters yet (`thai_vowels`, until Step 8) is greyed and says
+  "coming soon" rather than being hidden.
+- **`scenes/character_select.tscn`** — the grid of characters in one set, each
+  with its earned stars underneath and unearned ones as faint outlines, exactly
+  as on the score card. The number of columns comes from the size of the set
+  (√(n · 2.2), clamped to 4–8), and cells are never taller than they are wide,
+  so ten digits are five big buttons by two rather than two half-metre rows.
+  A character with **no recorded strokes** is greyed, marked "soon" and cannot
+  be opened — visible so the grid shows what is left to record in Step 8,
+  disabled so a child never walks into a screen with nothing to trace.
+- **`scripts/screens.gd`** — which screen is on the display, and the wiring
+  between them, in one place. Scenes are swapped by hand rather than with
+  `change_scene_to_file` because a screen needs its subject *before* it enters
+  the tree (which set, which character); the swap is deferred, so calling it
+  from a button's own `pressed` signal is safe. It is also what listens to the
+  tracing scene's `scored` signal — that scene stays stateless, and the same
+  wiring applies however it was launched.
+
+Progress lives in **`scripts/progress.gd`** and is written to
+`user://progress.json`:
+
+```json
+{ "version": 1, "sets": { "thai_consonants": { "ก": 3, "ข": 2 } } }
+```
+
+- **Best stars are kept, never the latest.** A child who writes ก beautifully
+  on Tuesday and hurriedly on Wednesday has not got worse at ก, and a star that
+  can be taken away is not worth earning. `record()` only ever raises a score.
+- `user://` because it is the only writable place in an export — `res://` is
+  read-only there, so the obvious spot beside the stroke data would work in the
+  editor and fail on the Surface Go.
+- **Nothing in it may stop the app.** A missing file is a child who has not
+  played yet; a corrupt one is a half-finished write, and the answer to both is
+  an empty progress dictionary and a line in the console. A file somebody has
+  hand-edited is salvaged row by row — a bad entry is dropped, an impossible
+  star count is clamped — because one bad row must not cost the rest.
+- Where the star boundaries are is `scorer.gd`'s business, not this file's:
+  `mastered_stars()` asks it what a flawless trace earns rather than writing 3
+  down a second time.
 
 ## Stroke Recorder (dev tool, Step 3)
 
@@ -181,6 +248,7 @@ Headless suites (no display needed):
 godot --headless --path . --script tests/test_stroke_data.gd
 godot --headless --path . --script tests/test_char_sets.gd
 godot --headless --path . --script tests/test_scorer.gd
+godot --headless --path . --script tests/test_progress.gd
 ```
 
 `test_stroke_data.gd` exercises `scripts/stroke_data.gd` (stroke JSON
@@ -190,14 +258,18 @@ that every stroke file agrees with it, and that the dataset validator really
 rejects bad entries. `test_scorer.gd` scores synthetic traces — exact, wobbly,
 sloppy, backwards, half-drawn, scribbled — against a synthetic guide, and
 checks the generated sounds; both `scorer.gd` and `tone_bank.gd` are static and
-pure, which is what lets it run with no display.
+pure, which is what lets it run with no display. `test_progress.gd` covers the
+stars a child keeps: best-of-not-latest, a missing file, a truncated one, JSON
+of the wrong shape, a hand-edited one, merging two histories, and the whole
+load-record-save round trip the tracing scene makes.
 
-The recorder and tracing suites drive the real scenes with synthetic touch
-events, so they need a display and open a small window for a few seconds:
+The recorder, tracing and menu suites drive the real scenes with synthetic
+touch events, so they need a display and open a small window for a few seconds:
 
 ```sh
 godot --path . -w --resolution 960x640 --script tests/test_recorder.gd
 godot --path . -w --resolution 960x640 --script tests/test_tracing.gd
+godot --path . -w --resolution 960x640 --script tests/test_menus.gd
 ```
 
 `test_tracing.gd` covers the demo advancing stroke by stroke and ending on its
@@ -211,12 +283,24 @@ is throttled to a crawl, and with the frames unthrottled the suite takes about
 five seconds instead of minutes. Anything the scene does on a clock is waited
 for in seconds, never in frames.
 
-Both point `CharSets.stroke_dir` at a scratch directory under `user://`, so
-they never write to — and never depend on what has been recorded in —
-`data/strokes/`. The tracing suite writes its own two-character file there and
-checks the real dataset's SHA-256s afterwards. **Any new test that drives a
-scene which reads or writes stroke files must do the same**, or it will start
-failing the day that character is re-recorded.
+`test_menus.gd` walks the whole of GATE 7 — main menu → character grid →
+tracing → score → back → back — and **presses every button with a synthetic
+finger**, never by emitting `pressed` and never with a key: a button that is
+off-screen, covered or too small fails these checks the way it would fail a
+five-year-old. (It is what caught the score card covering the side panel's
+"back".) It also checks that the stars are on disk by reading the file back,
+which is exactly what the next launch does.
+
+All three point `CharSets.stroke_dir` at a scratch directory under `user://`,
+so they never write to — and never depend on what has been recorded in —
+`data/strokes/`; the tracing and menu suites write their own small stroke files
+there and check the real dataset's SHA-256s afterwards. **Any new test that
+drives a scene which reads or writes stroke files must do the same**, or it
+will start failing the day that character is re-recorded. The same goes for
+progress: `test_progress.gd` and `test_menus.gd` point `Progress.path` at a
+scratch file and check `user://progress.json` is untouched, because unlike a
+stroke file it holds something nobody can re-record — a real child's real
+stars.
 
 All exit non-zero on failure.
 

@@ -1,7 +1,9 @@
 extends Control
 ## Step 5 tracing scene — the first screen the child actually uses.
 ##
-## Launch: godot --path . -- --tracing    (add --mouse to trace with a mouse)
+## Reached from the character-select screen, or with
+## `godot --path . -- --tracing` for the first character of the first set (add
+## --mouse to trace with a mouse).
 ##
 ## State machine, one character at a time:
 ##   DEMO   the character draws itself stroke by stroke, numbered in order;
@@ -37,10 +39,17 @@ const TB := preload("res://scripts/tone_bank.gd")
 const SARABUN: FontFile = preload("res://assets/fonts/sarabun/Sarabun-Regular.ttf")
 const ANDIKA: FontFile = preload("res://assets/fonts/andika/Andika-Regular.ttf")
 
-## Emitted when a character has been traced and scored. Step 7's progress file
-## is the intended listener: this scene deliberately keeps no state of its own
-## beyond the character in front of the child.
+## Emitted when a character has been traced and scored. progress.gd is the
+## intended listener (screens.gd connects it): this scene deliberately keeps no
+## state of its own beyond the character in front of the child.
 signal scored(set_id: String, chr: String, stars: int)
+
+## Emitted when the child asks to leave — the big "back" button, or Esc.
+## screens.gd takes them to the character grid of the set they came from; the
+## set is carried in the signal because this scene does not know how they
+## arrived. Nothing is saved here on the way out: a character is scored when its
+## last stroke is finished, and a half-written one is not a result.
+signal back_requested(set_id: String)
 
 enum State {
 	EMPTY,  ## The character has no recorded strokes — nothing to trace.
@@ -139,9 +148,10 @@ func _input(event: InputEvent) -> void:
 		_on_key(event)
 
 
-## Open a character by set id and character. The command line has no menus to
-## come from until Step 7, so this is how the tests and (later) the character
-## select screen choose what to practise.
+## Open a character by set id and character — the public way into this scene.
+## The character-select screen and the tests both come through here, and it
+## tolerates being called before the scene is in the tree, which is what lets
+## screens.gd set the subject before _ready() runs.
 func open(set_id: String, chr: String) -> void:
 	if not is_node_ready():
 		_pending_set = set_id
@@ -259,7 +269,7 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 func _on_key(event: InputEventKey) -> void:
 	match event.keycode:
 		KEY_ESCAPE:
-			get_tree().quit()
+			_on_back()
 		KEY_R:
 			_on_watch_again()
 		KEY_SPACE:
@@ -333,6 +343,13 @@ func _on_start_over() -> void:
 
 func _on_next() -> void:
 	_step_char(1)
+
+
+## Leave the character. The celebration is stopped first: walking out while the
+## stars are still landing must not leave notes ringing over the next screen.
+func _on_back() -> void:
+	_hush()
+	back_requested.emit(_current_set_id())
 
 
 # --- celebration -------------------------------------------------------------
@@ -535,13 +552,19 @@ func _connect_buttons() -> void:
 	var vbox := $SidePanel/Margin/VBox
 	vbox.get_node("WatchAgain").pressed.connect(_on_watch_again)
 	vbox.get_node("StartOver").pressed.connect(_on_start_over)
+	# ◀ char / char ▶ stay now that there are menus: finishing "ก" and wanting
+	# "ข" should not mean a trip back to the grid. Moving between *sets* is what
+	# the menus took over — that is a decision, not a place to practise.
 	vbox.get_node("CharNav/PrevChar").pressed.connect(_step_char.bind(-1))
 	vbox.get_node("CharNav/NextChar").pressed.connect(_step_char.bind(1))
-	vbox.get_node("SetNav/PrevSet").pressed.connect(_step_set.bind(-1))
-	vbox.get_node("SetNav/NextSet").pressed.connect(_step_set.bind(1))
-	vbox.get_node("Quit").pressed.connect(get_tree().quit.bind(0))
+	vbox.get_node("Back").pressed.connect(_on_back)
 	var buttons := $ScoreOverlay/Card/Margin/VBox/Buttons
 	# "again" is the same action as "start over": wipe the ink and trace the
 	# character again — no demo first, they have just watched and written it.
 	buttons.get_node("Again").pressed.connect(_on_start_over)
 	buttons.get_node("Next").pressed.connect(_on_next)
+	# The card covers the side panel — deliberately, so the writing stays in
+	# sight — which takes the panel's "back" with it. Without this button the
+	# only ways out of the celebration are "again" and "next", and a child who
+	# has finished with a letter would have to open another one to leave.
+	buttons.get_node("Back").pressed.connect(_on_back)

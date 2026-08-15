@@ -1,0 +1,132 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+[ext_resource type="Script" path="res://scripts/character_select.gd" id="2_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.6, 0.68, 0.82, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+bg_color = Color(0.87, 0.93, 1, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.28, 0.5, 0.82, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disabled"]
+bg_color = Color(0.93, 0.92, 0.88, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.82, 0.81, 0.77, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="Theme" id="Theme_chars"]
+default_font = ExtResource("1_sarabun")
+default_font_size = 34
+Button/colors/font_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_disabled_color = Color(0.55, 0.54, 0.5, 1)
+Button/colors/font_hover_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_pressed_color = Color(0.1, 0.2, 0.4, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_normal")
+Button/styles/hover = SubResource("StyleBoxFlat_normal")
+Button/styles/normal = SubResource("StyleBoxFlat_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource("Theme_chars")
+script = ExtResource("2_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.98, 0.96, 0.9, 1)
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 40.0
+offset_right = 1860.0
+offset_bottom = 176.0
+theme_override_constants/separation = 40
+
+[node name="Back" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "◀ back"
+
+[node name="Title" type="Label" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.15, 0.15, 0.2, 1)
+theme_override_font_sizes/font_size = 66
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Summary" type="Label" parent="TopBar"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.4, 0.34, 1)
+theme_override_font_sizes/font_size = 34
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="GridArea" type="CenterContainer" parent="."]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 206.0
+offset_right = 1860.0
+offset_bottom = 1230.0
+
+[node name="Grid" type="GridContainer" parent="GridArea"]
+layout_mode = 2
+theme_override_constants/h_separation = 22
+theme_override_constants/v_separation = 22
+columns = 8
+
+[node name="EmptyNote" type="Label" parent="."]
+visible = false
+layout_mode = 1
+offset_left = 160.0
+offset_top = 206.0
+offset_right = 1760.0
+offset_bottom = 1230.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.4, 0.34, 1)
+theme_override_font_sizes/font_size = 52
+text = "Nothing to practise here yet — coming soon."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3

@@ -1,0 +1,114 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="2_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.6, 0.68, 0.82, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+bg_color = Color(0.87, 0.93, 1, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.28, 0.5, 0.82, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disabled"]
+bg_color = Color(0.93, 0.92, 0.88, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.8, 0.79, 0.75, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="Theme" id="Theme_menu"]
+default_font = ExtResource("1_sarabun")
+default_font_size = 34
+Button/colors/font_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_disabled_color = Color(0.55, 0.54, 0.5, 1)
+Button/colors/font_hover_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_pressed_color = Color(0.1, 0.2, 0.4, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_normal")
+Button/styles/hover = SubResource("StyleBoxFlat_normal")
+Button/styles/normal = SubResource("StyleBoxFlat_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource("Theme_menu")
+script = ExtResource("2_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.98, 0.96, 0.9, 1)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+offset_left = 80.0
+offset_top = 44.0
+offset_right = 1840.0
+offset_bottom = 180.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.15, 0.15, 0.2, 1)
+theme_override_font_sizes/font_size = 86
+text = "มาเขียนกันเถอะ · Let's write!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TotalStars" type="Label" parent="."]
+layout_mode = 1
+offset_left = 80.0
+offset_top = 182.0
+offset_right = 1840.0
+offset_bottom = 246.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.4, 0.34, 1)
+theme_override_font_sizes/font_size = 38
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="."]
+layout_mode = 1
+offset_left = 80.0
+offset_top = 272.0
+offset_right = 1840.0
+offset_bottom = 1142.0
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 40
+columns = 3
+
+[node name="Quit" type="Button" parent="."]
+layout_mode = 1
+offset_left = 1600.0
+offset_top = 1168.0
+offset_right = 1840.0
+offset_bottom = 1256.0
+theme_override_font_sizes/font_size = 34
+text = "quit"

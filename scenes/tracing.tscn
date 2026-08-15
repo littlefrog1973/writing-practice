@@ -185,25 +185,6 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "char ▶"
 
-[node name="SetNav" type="GridContainer" parent="SidePanel/Margin/VBox"]
-layout_mode = 2
-theme_override_constants/h_separation = 24
-columns = 2
-
-[node name="PrevSet" type="Button" parent="SidePanel/Margin/VBox/SetNav"]
-custom_minimum_size = Vector2(0, 96)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 36
-text = "◀ set"
-
-[node name="NextSet" type="Button" parent="SidePanel/Margin/VBox/SetNav"]
-custom_minimum_size = Vector2(0, 96)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 36
-text = "set ▶"
-
 [node name="Progress" type="Label" parent="SidePanel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -213,11 +194,11 @@ text = "0 of 0 recorded"
 autowrap_mode = 3
 vertical_alignment = 1
 
-[node name="Quit" type="Button" parent="SidePanel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 90)
+[node name="Back" type="Button" parent="SidePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
-theme_override_font_sizes/font_size = 34
-text = "quit"
+theme_override_font_sizes/font_size = 48
+text = "◀ back"
 
 [node name="Status" type="Label" parent="."]
 layout_mode = 1
@@ -299,18 +280,25 @@ autowrap_mode = 3
 layout_mode = 2
 theme_override_constants/separation = 24
 
+[node name="Back" type="Button" parent="ScoreOverlay/Card/Margin/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "◀ back"
+
 [node name="Again" type="Button" parent="ScoreOverlay/Card/Margin/VBox/Buttons"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 56
+theme_override_font_sizes/font_size = 44
 text = "↺ again"
 
 [node name="Next" type="Button" parent="ScoreOverlay/Card/Margin/VBox/Buttons"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 56
+theme_override_font_sizes/font_size = 44
 text = "next ▶"
 
 [node name="Confetti" type="CPUParticles2D" parent="ScoreOverlay"]
