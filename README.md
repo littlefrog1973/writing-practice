@@ -68,13 +68,31 @@ Two presets in `export_presets.cfg`, both a single self-contained file with the
 PCK embedded — nothing to install on either machine:
 
 ```sh
+mkdir -p build/linux build/windows
 godot --headless --path . --export-release "Linux"           build/linux/writing_practice.x86_64
 godot --headless --path . --export-release "Windows Desktop" build/windows/writing_practice.exe
+ls -la build/linux build/windows          # the only honest check — see below
 ```
+
+**The `mkdir` is not optional and `godot` will not tell you so.** Godot does
+not create the output directory, and on a fresh checkout (`build/` is
+gitignored, so every checkout is fresh) the export fails with
+`Prepare Template: The given export path doesn't exist` — while **still
+exiting 0**. A build script that trusts the exit code will happily ship
+whatever was in `build/` before, or nothing at all. Look at the files.
+
+Needs the **export templates** for the exact Godot version installed — see the
+Step 0 notes at the top; without them the export fails the same quiet way.
 
 `build/` is gitignored; `export_presets.cfg` is committed, because it is what
 defines the build. Copy the `.exe` to the Windows partition and run it there —
 it is the same machine, so touch, fonts and stars all behave as on Fedora.
+
+To move the Linux build to **another Fedora machine**, copy the one file and
+`chmod +x` it. It links against nothing but glibc 2.28 or newer (librt,
+libpthread, libdl, libm, libc); OpenGL, X11/Wayland and audio are opened at
+runtime. To bring the child's stars along, copy `progress.json` from the
+directory in the table below as well — it is the only file the app writes.
 
 Two things the presets have to say out loud:
 
