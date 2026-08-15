@@ -192,13 +192,58 @@ func test_malformed_json() -> void:
 	check(not r5.ok, "empty stroke rejected")
 
 
+## Reads a real recorded file to prove load_set() copes with data the recorder
+## actually produced. It asserts nothing about *which* characters are in there:
+## that is the dataset validator's job, and an assertion on the contents would
+## go red every time the user records a batch (as an earlier version of this
+## test did the moment the digits were recorded).
 func test_sample_file() -> void:
-	print("shipped sample file:")
-	var r: Dictionary = SD.load_set("res://data/strokes/digits.json")
-	check(r.ok, "data/strokes/digits.json loads (error: %s)" % r.get("error", ""))
-	if r.ok:
-		check(r.entries.size() == 1 and r.entries[0]["char"] == "1"
-				and r.entries[0]["strokes"].size() == 1, "digit \"1\" entry looks right")
+	print("a real recorded file:")
+	var path := "res://data/strokes/digits.json"
+	var r: Dictionary = SD.load_set(path)
+	check(r.ok, "%s loads (error: %s)" % [path, r.get("error", "")])
+	if not r.ok:
+		return
+	check(not (r.entries as Array).is_empty(), "it has entries to check")
+
+	var well_formed := true
+	for entry: Dictionary in r.entries:
+		for key in SD.REQUIRED_KEYS:
+			if not entry.has(key):
+				well_formed = false
+		for stroke in entry["strokes"]:
+			if not (stroke is PackedVector2Array) or (stroke as PackedVector2Array).size() < 2:
+				well_formed = false
+	check(well_formed, "every entry parses into the runtime form with usable strokes")
+
+	# The round trip is the property worth pinning here: whatever the recorder
+	# wrote must survive save → load unchanged.
+	var round_trip := "user://round_trip.json"
+	check(SD.save_set(round_trip, r.entries).ok, "the entries save again")
+	var again: Dictionary = SD.load_set(round_trip)
+	check(again.ok and _same_entries(r.entries, again.entries),
+			"a real file survives a save/load round trip unchanged")
+
+
+func _same_entries(a: Array, b: Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in a.size():
+		var x: Dictionary = a[i]
+		var y: Dictionary = b[i]
+		if x["char"] != y["char"] or x["set"] != y["set"] or x["name"] != y["name"]:
+			return false
+		if (x["strokes"] as Array).size() != (y["strokes"] as Array).size():
+			return false
+		for s in (x["strokes"] as Array).size():
+			var sx: PackedVector2Array = x["strokes"][s]
+			var sy: PackedVector2Array = y["strokes"][s]
+			if sx.size() != sy.size():
+				return false
+			for p in sx.size():
+				if not sx[p].is_equal_approx(sy[p]):
+					return false
+	return true
 
 
 func _write(path: String, text: String) -> void:
