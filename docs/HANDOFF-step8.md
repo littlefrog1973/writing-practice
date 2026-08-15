@@ -19,12 +19,11 @@ path with synthetic touches and passes, so a GATE 7 failure is most likely
 about size, reach or clarity on a real 10" screen — a layout number in
 `main_menu.gd` / `character_select.gd`, not a design to rework.
 
-One thing deliberately left for the user to judge at GATE 7: the menus use
-white rounded cards (a Theme in each `.tscn`) while the **tracing scene still
-uses Godot's default dark-grey buttons**, because that screen's look was
-already approved at GATES 5 and 6 and restyling it was not Step 7's job. If it
-jars in the child's hands, copying the `Theme_menu` sub-resource from
-`scenes/main_menu.tscn` into `scenes/tracing.tscn` is a five-line change.
+Note that the tracing scene's buttons changed after GATES 5 and 6 were passed:
+all three child-facing scenes now share `assets/theme/app_theme.tres`, so its
+buttons are white rounded cards instead of Godot's default grey slabs. Nothing
+about the layout, the drawing box or the score card moved, but it is worth a
+second look at the same time as GATE 7.
 
 ## Where the project stands (verified)
 

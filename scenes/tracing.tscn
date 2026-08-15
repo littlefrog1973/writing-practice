@@ -1,15 +1,11 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=12 format=3]
 
-[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+[ext_resource type="Theme" path="res://assets/theme/app_theme.tres" id="1_theme"]
 [ext_resource type="Script" path="res://scripts/tracing.gd" id="2_script"]
 [ext_resource type="Script" path="res://scripts/stroke_animator.gd" id="3_animator"]
 [ext_resource type="Script" path="res://scripts/dotted_guide.gd" id="4_dotted"]
 [ext_resource type="Script" path="res://scripts/star_row.gd" id="5_stars"]
 [ext_resource type="Script" path="res://scripts/confetti.gd" id="6_confetti"]
-
-[sub_resource type="Theme" id="Theme_main"]
-default_font = ExtResource("1_sarabun")
-default_font_size = 34
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(1, 1, 1, 1)
@@ -55,7 +51,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = SubResource("Theme_main")
+theme = ExtResource("1_theme")
 script = ExtResource("2_script")
 
 [node name="Background" type="ColorRect" parent="."]

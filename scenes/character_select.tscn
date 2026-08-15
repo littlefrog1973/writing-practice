@@ -1,63 +1,14 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+[ext_resource type="Theme" path="res://assets/theme/app_theme.tres" id="1_theme"]
 [ext_resource type="Script" path="res://scripts/character_select.gd" id="2_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.6, 0.68, 0.82, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
-bg_color = Color(0.87, 0.93, 1, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.28, 0.5, 0.82, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disabled"]
-bg_color = Color(0.93, 0.92, 0.88, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.82, 0.81, 0.77, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-
-[sub_resource type="Theme" id="Theme_chars"]
-default_font = ExtResource("1_sarabun")
-default_font_size = 34
-Button/colors/font_color = Color(0.15, 0.15, 0.2, 1)
-Button/colors/font_disabled_color = Color(0.55, 0.54, 0.5, 1)
-Button/colors/font_hover_color = Color(0.15, 0.15, 0.2, 1)
-Button/colors/font_pressed_color = Color(0.1, 0.2, 0.4, 1)
-Button/styles/disabled = SubResource("StyleBoxFlat_disabled")
-Button/styles/focus = SubResource("StyleBoxFlat_normal")
-Button/styles/hover = SubResource("StyleBoxFlat_normal")
-Button/styles/normal = SubResource("StyleBoxFlat_normal")
-Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
 
 [node name="CharacterSelect" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = SubResource("Theme_chars")
+theme = ExtResource("1_theme")
 script = ExtResource("2_script")
 
 [node name="Background" type="ColorRect" parent="."]

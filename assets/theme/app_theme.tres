@@ -1,0 +1,78 @@
+; The app's one Theme: the Thai guide font as the default font, and buttons as
+; white rounded cards rather than Godot's default grey slabs.
+;
+; Every screen the child touches uses this — the menus, the character grid and
+; the tracing scene — so a button looks and behaves the same wherever it is
+; found. It lives here rather than being a sub-resource of each scene because
+; it was three copies before, drifting apart by a corner radius at a time.
+;
+; The Stroke Recorder is deliberately not themed: it is an authoring tool for an
+; adult, and looking different from the app is a feature there.
+;
+; Node-level style overrides (the drawing box, the side panel, the score card)
+; stay in their scenes — this file is only what is shared.
+
+[gd_resource type="Theme" load_steps=5 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.6, 0.68, 0.82, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+bg_color = Color(0.87, 0.93, 1, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.28, 0.5, 0.82, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_disabled"]
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+bg_color = Color(0.93, 0.92, 0.88, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.82, 0.81, 0.77, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+
+[resource]
+default_font = ExtResource("1_sarabun")
+default_font_size = 34
+Button/colors/font_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_disabled_color = Color(0.55, 0.54, 0.5, 1)
+Button/colors/font_hover_color = Color(0.15, 0.15, 0.2, 1)
+Button/colors/font_pressed_color = Color(0.1, 0.2, 0.4, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_normal")
+Button/styles/hover = SubResource("StyleBoxFlat_normal")
+Button/styles/normal = SubResource("StyleBoxFlat_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_pressed")

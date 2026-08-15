@@ -173,6 +173,13 @@ main menu  ──set──▶  character select  ──character──▶  traci
   A character with **no recorded strokes** is greyed, marked "soon" and cannot
   be opened — visible so the grid shows what is left to record in Step 8,
   disabled so a child never walks into a screen with nothing to trace.
+- **`assets/theme/app_theme.tres`** — the one Theme all three child-facing
+  scenes use: the Thai guide font as the default font, and buttons as white
+  rounded cards rather than Godot's default grey slabs. It is a file rather
+  than a sub-resource of each scene because it was three copies before,
+  drifting apart by a corner radius at a time. The Stroke Recorder is
+  deliberately left unthemed — it is an authoring tool for an adult, and
+  looking different from the app is a feature there.
 - **`scripts/screens.gd`** — which screen is on the display, and the wiring
   between them, in one place. Scenes are swapped by hand rather than with
   `change_scene_to_file` because a screen needs its subject *before* it enters
