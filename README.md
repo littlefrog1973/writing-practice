@@ -56,6 +56,53 @@ touch); `emulate_touch_from_mouse` stays **off** in the project settings —
 `--mouse` turns it on at runtime for desktop work, so real touch handling is
 never masked in the app the child uses.
 
+## Building the app (Step 9)
+
+Two presets in `export_presets.cfg`, both a single self-contained file with the
+PCK embedded — nothing to install on either machine:
+
+```sh
+godot --headless --path . --export-release "Linux"           build/linux/writing_practice.x86_64
+godot --headless --path . --export-release "Windows Desktop" build/windows/writing_practice.exe
+```
+
+`build/` is gitignored; `export_presets.cfg` is committed, because it is what
+defines the build. Copy the `.exe` to the Windows partition and run it there —
+it is the same machine, so touch, fonts and stars all behave as on Fedora.
+
+Two things the presets have to say out loud:
+
+- **`include_filter="data/strokes/*.json,assets/fonts/*/OFL.txt"`.** Godot does
+  not import `.json` as a resource, so `export_filter="all_resources"` leaves
+  the entire recorded dataset out of the build and the app ships with nothing
+  to trace. The font licences are plain text for the same reason and must
+  travel with the fonts they cover. Ask the build itself after any preset
+  change, rather than trusting the export log:
+
+  ```sh
+  build/linux/writing_practice.x86_64 --quit-after 120 -- --recorder
+  # [recorder] Set: Thai consonants (44 characters, 44 recorded).
+  ```
+
+  `--quit-after` matters as much as the route does: an exported build's stdout
+  is block-buffered when redirected, so a build stopped with `timeout` or
+  Ctrl-C dies without flushing a line of it and looks silent. Let it quit on
+  its own, or read the log file below.
+- **`exclude_filter="docs/*,tests/*"`.** The test suites are `.gd` files and
+  would otherwise be packed into the app a child runs.
+
+When something goes wrong in an exported build there is no console to watch.
+The app writes one instead, on a clean exit:
+
+| | |
+| --- | --- |
+| Fedora | `~/.local/share/godot/app_userdata/Writing Practice/logs/` |
+| Windows | `%APPDATA%\Godot\app_userdata\Writing Practice\logs\` |
+
+`user://progress.json` — the child's stars — lives in the same directory, one
+per operating system. Booting Windows does not lose the Fedora stars; it starts
+a second, separate collection of them.
+
 ## Tracing scene (Step 5)
 
 ```sh
