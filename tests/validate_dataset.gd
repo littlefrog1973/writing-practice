@@ -29,7 +29,7 @@ func _init() -> void:
 		chars_total += set_info.total
 		var note := ""
 		if set_info.total == 0:
-			note = "  (empty in the catalog — filled in Step 8)"
+			note = "  (no characters in the catalog yet)"
 		elif set_info.recorded == set_info.total:
 			note = "  complete"
 		print("  %-16s %3d/%-3d%s" % [set_info.id, set_info.recorded, set_info.total, note])
@@ -78,10 +78,13 @@ func _print_missing() -> void:
 	if loaded.ok:
 		for entry: Dictionary in loaded.entries:
 			recorded[entry["char"]] = true
+	# Combining marks are shown on the dotted placeholder, as every scene shows
+	# them: printed bare they attach to the separating space and the list comes
+	# out as one unreadable smear.
 	var missing := PackedStringArray()
 	for chr in CS.chars_of(id):
 		if not recorded.has(chr):
-			missing.append(chr)
+			missing.append(CS.display_form(id, chr))
 
 	print("\nstill to record in %s (%d):" % [CS.label_of(id), missing.size()])
 	print("  %s" % (" ".join(missing) if not missing.is_empty() else "— nothing, this set is done"))

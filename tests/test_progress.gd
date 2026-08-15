@@ -204,8 +204,8 @@ func test_summary() -> void:
 	var untouched := PR.summary(data, OTHER_SET)
 	check(int(untouched["traced"]) == 0 and int(untouched["stars"]) == 0,
 			"a set nobody has opened reads as empty, not as an error")
-	check(int(PR.summary(data, "thai_vowels")["total"]) == 0,
-			"and a set with no characters yet has nothing to write")
+	check(int(PR.summary(data, "no_such_set")["total"]) == 0,
+			"and a set that is not in the catalog reads as empty, not as an error")
 
 
 func test_record_and_save() -> void:

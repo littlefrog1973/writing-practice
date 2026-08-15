@@ -59,6 +59,47 @@ const THAI_NUMERAL_NAMES: PackedStringArray = [
 	"ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า",
 ]
 
+## Thai vowel signs and tone marks, in the order they are taught: the fifteen
+## สระ in recital order, then the four tone marks, then ไม้ไต่คู้ and การันต์.
+##
+## Listed one quoted character per line rather than as a single string the way
+## the other sets are: every one of these code points combines with whatever
+## precedes it, so a run of them stacks into an unreadable blob and cannot be
+## edited safely. The comment on each line shows the mark on a dotted
+## placeholder — exactly how the recorder, the grid and the tracing scene draw
+## it — so the character, its position and its name can be checked by eye.
+const THAI_VOWEL_CHARS: PackedStringArray = [
+	"ะ",  # ◌ะ  sara a
+	"ั",  # ◌ั  mai han akat
+	"า",  # ◌า  sara aa
+	"ำ",  # ◌ำ  sara am
+	"ิ",  # ◌ิ  sara i
+	"ี",  # ◌ี  sara ii
+	"ึ",  # ◌ึ  sara ue
+	"ื",  # ◌ื  sara uee
+	"ุ",  # ◌ุ  sara u
+	"ู",  # ◌ู  sara uu
+	"เ",  # เ◌  sara e
+	"แ",  # แ◌  sara ae
+	"โ",  # โ◌  sara o
+	"ใ",  # ใ◌  sara ai mai muan
+	"ไ",  # ไ◌  sara ai mai malai
+	"่",  # ◌่  mai ek
+	"้",  # ◌้  mai tho
+	"๊",  # ◌๊  mai tri
+	"๋",  # ◌๋  mai chattawa
+	"็",  # ◌็  mai taikhu
+	"์",  # ◌์  karan (thanthakhat)
+]
+
+## Names, in the same order as THAI_VOWEL_CHARS. Each one is written on อ so it
+## reads as itself: a bare combining mark has nothing to sit on.
+const THAI_VOWEL_NAMES: PackedStringArray = [
+	"สระอะ", "ไม้หันอากาศ", "สระอา", "สระอำ", "สระอิ", "สระอี", "สระอึ", "สระอือ",
+	"สระอุ", "สระอู", "สระเอ", "สระแอ", "สระโอ", "สระใอ ไม้ม้วน", "สระไอ ไม้มลาย",
+	"ไม้เอก", "ไม้โท", "ไม้ตรี", "ไม้จัตวา", "ไม้ไต่คู้", "การันต์",
+]
+
 const UPPER_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 const LOWER_CHARS := "abcdefghijklmnopqrstuvwxyz"
@@ -118,6 +159,27 @@ static func is_combining(id: String) -> bool:
 	return get_set(id).get("combining", false)
 
 
+## The dotted circle a mark that cannot stand alone is shown on.
+const PLACEHOLDER := "◌"
+
+## The five Thai vowels written *before* the consonant they belong to. Every
+## other mark in the set is written after, above or below it. Text is stored in
+## the order it is written, so a leading vowel put after the placeholder comes
+## out as "◌เ" — the mirror image of how a child is taught to write it.
+const THAI_LEADING_VOWELS := "เแโใไ"
+
+## How a character should be drawn: itself for a set that stands alone, and the
+## mark on its placeholder — on the side it is actually written — for one that
+## does not. The recorder, the character grid and the tracing scene all ask
+## here, so the guide glyph, the recorded strokes and the child's copy agree.
+static func display_form(id: String, chr: String) -> String:
+	if not is_combining(id):
+		return chr
+	if THAI_LEADING_VOWELS.contains(chr):
+		return chr + PLACEHOLDER
+	return PLACEHOLDER + chr
+
+
 ## Path of the stroke file backing a set.
 static func path_of(id: String) -> String:
 	return "%s/%s.json" % [stroke_dir, id]
@@ -166,9 +228,8 @@ static func _build() -> Dictionary:
 				_split(DIGIT_CHARS), DIGIT_NAMES),
 		"thai_numerals": _make_set("thai_numerals", "Thai numerals", FONT_THAI,
 				_split(THAI_NUMERAL_CHARS), THAI_NUMERAL_NAMES),
-		# Filled in Step 8; the recorder skips sets with no characters.
 		"thai_vowels": _make_set("thai_vowels", "Thai vowels & tone marks", FONT_THAI,
-				PackedStringArray(), PackedStringArray(), true),
+				THAI_VOWEL_CHARS, THAI_VOWEL_NAMES, true),
 	}
 
 

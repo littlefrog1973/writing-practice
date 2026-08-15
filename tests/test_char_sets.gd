@@ -7,6 +7,7 @@ extends SceneTree
 const CS := preload("res://scripts/char_sets.gd")
 const SD := preload("res://scripts/stroke_data.gd")
 const DV := preload("res://scripts/dataset_validator.gd")
+const GG := preload("res://scripts/glyph_guide.gd")
 
 var failures := 0
 var checks := 0
@@ -16,6 +17,7 @@ func _init() -> void:
 	test_integrity()
 	test_expected_contents()
 	test_lookups()
+	test_guide_sizing()
 	test_stroke_files_match_catalog()
 	test_validator_catches_bad_entries()
 	print("")
@@ -58,11 +60,29 @@ func test_expected_contents() -> void:
 	check(CS.chars_of("english_upper")[0] == "A" and CS.chars_of("english_upper")[25] == "Z",
 			"capitals run A … Z")
 	check(CS.chars_of("thai_numerals")[0] == "๐", "Thai numerals start at ๐")
-	check(CS.chars_of("thai_vowels").is_empty() and CS.is_combining("thai_vowels"),
-			"thai_vowels is an empty combining stub (filled in Step 8)")
-	check(not CS.recordable_ids().has("thai_vowels")
-			and CS.recordable_ids().size() == CS.SET_IDS.size() - 1,
-			"recordable_ids() skips empty sets only")
+	check(CS.chars_of("thai_vowels").size() == 21 and CS.is_combining("thai_vowels"),
+			"21 Thai vowels & tone marks, marked combining (got %d)"
+			% CS.chars_of("thai_vowels").size())
+	check(CS.chars_of("thai_vowels")[0] == "ะ" and CS.chars_of("thai_vowels")[20] == "์",
+			"they run สระอะ … การันต์")
+	check(_all_vowel_marks("thai_vowels"),
+			"and every one is a single code point in the Thai vowel & tone block")
+	check(CS.recordable_ids() == CS.SET_IDS,
+			"recordable_ids() is now every set — none is an empty stub")
+
+
+## Every character of `id` is one code point in U+0E30…U+0E4C — the Thai vowel
+## signs and tone marks. A mark pasted from the wrong place (a lookalike, or the
+## อ carrier caught along with the mark) would otherwise show up only as a
+## puzzling recording much later.
+func _all_vowel_marks(id: String) -> bool:
+	for chr in CS.chars_of(id):
+		if chr.length() != 1:
+			return false
+		var code := chr.unicode_at(0)
+		if code < 0x0E30 or code > 0x0E4C:
+			return false
+	return true
 
 
 func test_lookups() -> void:
@@ -72,15 +92,52 @@ func test_lookups() -> void:
 	check(CS.name_of("digits", "1") == "one", "digit name")
 	check(CS.name_of("english_upper", "A") == "A", "letter names are the letter")
 	check(CS.name_of("digits", "!") == "!", "unknown character falls back to itself")
+	# The names of the vowels are the one place a one-off shift in a parallel
+	# array would be invisible: check both ends and a tone mark in the middle.
+	check(CS.name_of("thai_vowels", "ะ") == "สระอะ"
+			and CS.name_of("thai_vowels", "่") == "ไม้เอก"
+			and CS.name_of("thai_vowels", "์") == "การันต์",
+			"vowel and tone-mark names line up with their marks")
 	check(CS.font_of("thai_consonants") == CS.FONT_THAI
 			and CS.font_of("english_upper") == CS.FONT_LATIN, "fonts assigned per script")
 	check(CS.path_of("digits") == "res://data/strokes/digits.json", "stroke path per set")
+	# Which side of the placeholder a mark goes on is the difference between
+	# teaching a child to write เ before the consonant and teaching it after.
+	check(CS.display_form("digits", "1") == "1", "a letter is shown as itself")
+	check(CS.display_form("thai_vowels", "ิ") == "◌ิ", "a mark above sits on the placeholder")
+	check(CS.display_form("thai_vowels", "า") == "◌า", "so does one written after it")
+	check(CS.display_form("thai_vowels", "เ") == "เ◌"
+			and CS.display_form("thai_vowels", "ไ") == "ไ◌",
+			"but a leading vowel is shown before it, as it is written")
 	check(CS.get_set("nope").is_empty() and not CS.has_set("nope"), "unknown set id is empty")
 
 
 ## The per-entry rules live in scripts/dataset_validator.gd (one definition,
 ## also runnable on its own as tests/validate_dataset.gd); this only asserts
 ## that the shipped files satisfy them.
+## A mark on its placeholder is drawn smaller so it cannot land outside the box,
+## where the recorder clamps every touch. The other side of that is the one that
+## would be expensive: resizing a guide glyph moves it under strokes already
+## recorded against it, so nothing outside the combining set may change.
+func test_guide_sizing() -> void:
+	print("guide glyph sizing:")
+	var unchanged := true
+	var combining := 0
+	for id in CS.SET_IDS:
+		for chr in CS.chars_of(id):
+			var ratio := GG.size_ratio_for(CS.display_form(id, chr))
+			if CS.is_combining(id):
+				combining += 1
+				if ratio != GG.COMBINING_SIZE_RATIO:
+					unchanged = false
+			elif ratio != GG.FONT_SIZE_RATIO:
+				unchanged = false
+	check(unchanged and combining == 21,
+			"every mark is sized as a mark and every letter exactly as before")
+	check(GG.COMBINING_SIZE_RATIO < GG.FONT_SIZE_RATIO,
+			"a placeholder cluster is the smaller of the two")
+
+
 func test_stroke_files_match_catalog() -> void:
 	print("existing stroke files agree with the catalog:")
 	for id in CS.SET_IDS:

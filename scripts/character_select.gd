@@ -144,7 +144,7 @@ func _make_button(chr: String, cell: Vector2) -> Button:
 
 	# Combining marks cannot stand alone: the dotted placeholder circle Thai
 	# teaching materials use, the same one the recorder and tracing scene show.
-	var text := ("◌" + chr) if CS.is_combining(_set_id) else chr
+	var text := CS.display_form(_set_id, chr)
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_override("font",

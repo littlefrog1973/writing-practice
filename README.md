@@ -163,16 +163,16 @@ main menu  ──set──▶  character select  ──character──▶  traci
   own first character in the set's own font, its name, and how far the child
   has got. The buttons are built from `char_sets.gd`, not laid out in the
   scene, so a set added to the catalog appears here with nothing to edit. A set
-  with no characters yet (`thai_vowels`, until Step 8) is greyed and says
-  "coming soon" rather than being hidden.
+  with no characters at all in the catalog would be greyed and say "coming
+  soon" rather than be hidden; since Step 8 there is no longer such a set.
 - **`scenes/character_select.tscn`** — the grid of characters in one set, each
   with its earned stars underneath and unearned ones as faint outlines, exactly
   as on the score card. The number of columns comes from the size of the set
   (√(n · 2.2), clamped to 4–8), and cells are never taller than they are wide,
   so ten digits are five big buttons by two rather than two half-metre rows.
   A character with **no recorded strokes** is greyed, marked "soon" and cannot
-  be opened — visible so the grid shows what is left to record in Step 8,
-  disabled so a child never walks into a screen with nothing to trace.
+  be opened — visible so the grid shows what is left to record, disabled so a
+  child never walks into a screen with nothing to trace.
 - **`assets/theme/app_theme.tres`** — the one Theme all three child-facing
   scenes use: the Thai guide font as the default font, and buttons as white
   rounded cards rather than Godot's default grey slabs. It is a file rather
@@ -209,6 +209,35 @@ Progress lives in **`scripts/progress.gd`** and is written to
 - Where the star boundaries are is `scorer.gd`'s business, not this file's:
   `mastered_stars()` asks it what a flawless trace earns rather than writing 3
   down a second time.
+
+## Thai vowels & tone marks (Step 8)
+
+The last set in the catalog, and the only one whose characters cannot stand on
+their own. Twenty-one of them, in the order they are taught: the fifteen สระ in
+recital order (ะ ั า ำ ิ ี ึ ื ุ ู เ แ โ ใ ไ), the four tone marks
+(ไม้เอก ไม้โท ไม้ตรี ไม้จัตวา), then ไม้ไต่คู้ and การันต์.
+
+A mark is shown on the **dotted placeholder ◌** that Thai teaching materials
+use — and on the side of it the mark is really written. Text is stored in the
+order it is written, so the five leading vowels (เ แ โ ใ ไ) come *before* the
+placeholder and everything else after it: `เ◌`, but `◌ิ`. Putting them all on
+one side would teach half the set back to front, so which side each takes is a
+property of the character, in `CharSets.display_form()`, and the recorder, the
+character grid and the tracing scene all ask it rather than each building the
+string themselves.
+
+A placeholder cluster is also **drawn smaller** than a letter
+(`GlyphGuide.COMBINING_SIZE_RATIO`, 0.60 against 0.76): it is two characters
+stacked, and at the letter size the tallest marks put ink above the top of the
+drawing box — where the recorder clamps every touch, so the guide would be
+asking for a stroke that cannot be drawn. The ratio follows from the text
+itself, not from an argument each scene passes, because a glyph resized under
+strokes already recorded against it is silent damage; no recorded character
+contains the placeholder, so nothing outside this set can move.
+
+Vowels sit high or low against the placeholder rather than filling the box, and
+several are a single small stroke — expect more "a dot?" warnings from the
+dataset check here than elsewhere, and read them rather than silencing them.
 
 ## Stroke Recorder (dev tool, Step 3)
 
@@ -357,4 +386,4 @@ Recorder (Step 3), not by hand.
 
 Set ids — and so the file names — come from `scripts/char_sets.gd`:
 `thai_consonants`, `english_upper`, `english_lower`, `digits`,
-`thai_numerals`, `thai_vowels` (empty until Step 8).
+`thai_numerals`, `thai_vowels`.

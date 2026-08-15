@@ -440,9 +440,9 @@ func _clear_ink() -> void:
 
 func _refresh_glyph() -> void:
 	var id := _current_set_id()
-	# Combining marks cannot stand alone; show them on the dotted placeholder
-	# circle Thai teaching materials use.
-	var text := ("◌" + _current_char()) if CS.is_combining(id) else _current_char()
+	# Combining marks cannot stand alone; the catalog knows which side of the
+	# dotted placeholder circle each one is written on.
+	var text := CS.display_form(id, _current_char())
 	GG.apply(_glyph, _box().size,
 			SARABUN if CS.font_of(id) == CS.FONT_THAI else ANDIKA, text)
 

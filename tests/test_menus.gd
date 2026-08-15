@@ -30,7 +30,9 @@ const SCRATCH_PROGRESS := "user://test_menus/progress.json"
 
 const TEST_SET := "digits"
 const OTHER_SET := "thai_consonants"
-const EMPTY_SET := "thai_vowels"  ## In the catalog, no characters yet.
+## In the catalog since Step 8, but with no stroke file in the scratch dataset —
+## the state every set is in between being catalogued and being recorded.
+const UNRECORDED_SET := "thai_vowels"
 const TRACED_CHAR := "1"
 const SECOND_CHAR := "2"
 const UNRECORDED_CHAR := "3"
@@ -76,6 +78,7 @@ func _main() -> void:
 	await test_back_to_the_grid()
 	await test_back_to_the_menu()
 	await test_a_worse_attempt()
+	await test_a_set_not_recorded_yet()
 
 	CS.stroke_dir = CS.STROKE_DIR
 	PR.path = PR.DEFAULT_PATH
@@ -99,10 +102,11 @@ func test_main_menu() -> void:
 			"and says which set it is")
 	check(_text_of(digits).contains(TRACED_CHAR),
 			"showing one of its own characters")
-	var vowels := _set_button(EMPTY_SET)
-	check(vowels != null and vowels.disabled,
-			"a set with nothing recorded yet is visible but cannot be opened")
-	check(_text_of(vowels).contains("coming soon"), "and says so")
+	var vowels := _set_button(UNRECORDED_SET)
+	check(vowels != null and not vowels.disabled,
+			"a set that is catalogued but not recorded yet can still be opened")
+	check(_text_of(vowels).contains("%d to write" % CS.chars_of(UNRECORDED_SET).size()),
+			"and says how much of it there is")
 	check(current_scene.get_node("TotalStars").text.begins_with("0 star"),
 			"nothing earned yet (\"%s\")" % current_scene.get_node("TotalStars").text)
 
@@ -239,6 +243,38 @@ func test_a_worse_attempt() -> void:
 	await _wait_for("CharacterSelect")
 	check(_stars_of(_char_button(TRACED_CHAR))._stars == 3,
 			"and the grid still shows the best the child has done")
+
+
+## Step 8 puts 21 vowels in the catalog before a single one is recorded, and
+## that is not a passing state: every set spends time here, and the vowels stay
+## here between recording batches. The grid must fill itself from the catalog,
+## refuse every character, and — the part that matters — still let a child out.
+func test_a_set_not_recorded_yet() -> void:
+	print("a set in the catalog with nothing recorded:")
+	await _tap(current_scene.get_node("TopBar/Back"))
+	await _wait_for("MainMenu")
+	await _tap(_set_button(UNRECORDED_SET))
+	await _wait_for("CharacterSelect")
+	check(current_scene.get_node("TopBar/Title").text == CS.label_of(UNRECORDED_SET),
+			"the set opens without a stroke file to read")
+	var grid: GridContainer = current_scene.get_node("GridArea/Grid")
+	check(grid.get_child_count() == CS.chars_of(UNRECORDED_SET).size(),
+			"with a button per catalogued character (got %d)" % grid.get_child_count())
+	var all_soon := grid.get_child_count() > 0
+	for chr in CS.chars_of(UNRECORDED_SET):
+		var button := _char_button(chr)
+		if button == null or not button.disabled or not _text_of(button).contains("soon"):
+			all_soon = false
+	check(all_soon, "every one of them says \"soon\" and refuses a finger")
+	check(_text_of(_char_button("ะ")).contains("◌ะ"),
+			"a combining mark is shown on its placeholder, not on its own")
+	check(_text_of(_char_button("เ")).contains("เ◌"),
+			"and a leading vowel before it, the way it is written")
+
+	await _tap(current_scene.get_node("TopBar/Back"))
+	await _wait_for("MainMenu")
+	check(current_scene.name == "MainMenu",
+			"and \"back\" gets out again — the set is not a dead end")
 
 
 func test_real_files_untouched() -> void:
