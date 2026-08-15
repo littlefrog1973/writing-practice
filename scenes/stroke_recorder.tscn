@@ -1,0 +1,237 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/sarabun/Sarabun-Regular.ttf" id="1_sarabun"]
+[ext_resource type="Script" path="res://scripts/stroke_recorder.gd" id="2_script"]
+
+[sub_resource type="Theme" id="Theme_main"]
+default_font = ExtResource("1_sarabun")
+default_font_size = 34
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.55, 0.6, 0.7, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.93, 0.93, 0.9, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="StrokeRecorder" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource("Theme_main")
+script = ExtResource("2_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.98, 0.96, 0.9, 1)
+
+[node name="DrawBox" type="Panel" parent="."]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 150.0
+offset_right = 1060.0
+offset_bottom = 1150.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_box")
+
+[node name="Glyph" type="Label" parent="DrawBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.2, 0.22, 0.3, 0.3)
+theme_override_font_sizes/font_size = 720
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InkLayer" type="Node2D" parent="."]
+
+[node name="Marks" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 26.0
+offset_right = 1880.0
+offset_bottom = 126.0
+mouse_filter = 2
+theme_override_constants/separation = 48
+
+[node name="SetLabel" type="Label" parent="TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.38, 0.45, 1)
+theme_override_font_sizes/font_size = 40
+text = "set"
+vertical_alignment = 1
+
+[node name="CharName" type="Label" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.15, 0.15, 0.2, 1)
+theme_override_font_sizes/font_size = 56
+text = "char"
+vertical_alignment = 1
+
+[node name="StrokeCount" type="Label" parent="TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.38, 0.45, 1)
+theme_override_font_sizes/font_size = 40
+text = "0 strokes"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SidePanel" type="Panel" parent="."]
+layout_mode = 1
+offset_left = 1100.0
+offset_top = 150.0
+offset_right = 1880.0
+offset_bottom = 1150.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
+
+[node name="VBox" type="VBoxContainer" parent="SidePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="SetNav" type="GridContainer" parent="SidePanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+columns = 2
+
+[node name="PrevSet" type="Button" parent="SidePanel/Margin/VBox/SetNav"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 36
+text = "◀ set"
+
+[node name="NextSet" type="Button" parent="SidePanel/Margin/VBox/SetNav"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 36
+text = "set ▶"
+
+[node name="CharNav" type="GridContainer" parent="SidePanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+columns = 2
+
+[node name="PrevChar" type="Button" parent="SidePanel/Margin/VBox/CharNav"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "◀ char"
+
+[node name="NextChar" type="Button" parent="SidePanel/Margin/VBox/CharNav"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "char ▶"
+
+[node name="EditRow" type="GridContainer" parent="SidePanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+columns = 2
+
+[node name="Undo" type="Button" parent="SidePanel/Margin/VBox/EditRow"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "undo"
+
+[node name="Clear" type="Button" parent="SidePanel/Margin/VBox/EditRow"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "clear"
+
+[node name="ToolRow" type="GridContainer" parent="SidePanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+columns = 2
+
+[node name="Replay" type="Button" parent="SidePanel/Margin/VBox/ToolRow"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "replay"
+
+[node name="Reload" type="Button" parent="SidePanel/Margin/VBox/ToolRow"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "reload"
+
+[node name="Save" type="Button" parent="SidePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "SAVE"
+
+[node name="Progress" type="Label" parent="SidePanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.35, 0.38, 0.45, 1)
+theme_override_font_sizes/font_size = 32
+text = "0 / 0 recorded"
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="Quit" type="Button" parent="SidePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "quit"
+
+[node name="Status" type="Label" parent="."]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 1168.0
+offset_right = 1880.0
+offset_bottom = 1252.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.3, 0.33, 0.4, 1)
+theme_override_font_sizes/font_size = 34
+text = "…"
+vertical_alignment = 1
+autowrap_mode = 3
