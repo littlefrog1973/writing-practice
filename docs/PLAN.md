@@ -4,7 +4,7 @@
 
 A finger-tracing app for a child to learn to write Thai and English alphanumeric characters, running fullscreen on a touch-screen Surface Go dual-booting Fedora 44 and Windows 11. Stack chosen by user: **Godot 4.x + GDScript** (user knows Python). First version: letter tracing over guides, stroke-order animation, accuracy feedback with celebration. Character sets: 44 Thai consonants (ก–ฮ), English A–Z upper+lower, digits 0–9 + Thai numerals ๐–๙, Thai vowels/tone marks (~140 characters total).
 
-Project directory `/home/littlefrog/projects/writing_practice/` is empty (greenfield).
+The project directory is empty (greenfield).
 
 **How to use this plan**: execute one step at a time, in order. Each step ends with a **GATE** — a concrete check that must pass (with the user confirming touch-related gates on the real hardware) before starting the next step. If a gate fails, fix within the step; do not proceed.
 
@@ -54,7 +54,7 @@ writing_practice/
 
 ## Step 1 — Project scaffold
 
-1. Create the Godot project in `/home/littlefrog/projects/writing_practice/`: fullscreen window, base resolution 1920×1280 (Surface Go native), `canvas_items` stretch mode, Compatibility renderer, touch settings as per design decisions.
+1. Create the Godot project in the project directory: fullscreen window, base resolution 1920×1280 (Surface Go native), `canvas_items` stretch mode, Compatibility renderer, touch settings as per design decisions.
 2. Import fonts; make a test scene showing "ก ไก่ A a ๑ 1" in large type using the looped Thai font.
 3. Add README noting Godot version and how to run.
 

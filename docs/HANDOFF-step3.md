@@ -9,7 +9,7 @@ Steps 0–2 are done, GATES 0–2 passed (0 and 1 confirmed by the user on
 hardware; 2 is the automated test suite).
 
 - Godot **4.7.1-stable** at `~/.local/bin/godot`; export templates installed.
-  Run the app: `godot --path /home/littlefrog/projects/writing_practice`.
+  Run the app: `godot --path /path/to/writing_practice`.
 - Project: fullscreen (mode 3), 1920×1280 base, `canvas_items` stretch,
   `gl_compatibility` renderer, `emulate_mouse_from_touch=true`,
   `emulate_touch_from_mouse=false`.

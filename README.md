@@ -10,6 +10,30 @@ dataset is complete at 137 characters, every one recorded by hand on the touch
 screen. See "Building the app" below for the two export commands, and
 `docs/PLAN.md` for what was deliberately left out.
 
+## Licences
+
+The code in this repository is MIT — see `LICENSE`.
+
+The fonts are **not** MIT and are not covered by it. Both are redistributed
+here under the SIL Open Font License 1.1, with their licence text beside them
+and inside every exported build:
+
+| | |
+| --- | --- |
+| `assets/fonts/sarabun/` | Copyright 2018 The Sarabun Project Authors — OFL 1.1 |
+| `assets/fonts/andika/` | Copyright 2004–2022 SIL International — OFL 1.1, Reserved Font Names "Andika" and "SIL" |
+
+They are shipped byte-for-byte as published. If you ever modify one, OFL
+requires you to rename it — a Reserved Font Name cannot be carried by a
+modified version.
+
+An exported build also embeds the Godot engine (MIT) and its third-party
+components. If you distribute binaries, ship the notice with them:
+`Engine.get_license_text()` and `Engine.get_copyright_info()` produce it.
+
+The recorded stroke data in `data/strokes/` is original work, authored by hand
+on a touch screen, and is MIT along with the code.
+
 ## Tech stack / installation notes (Step 0)
 
 - **Godot 4.7.1-stable** (official standalone binary from godotengine.org,
@@ -30,7 +54,7 @@ screen. See "Building the app" below for the two export commands, and
 ## Running
 
 ```sh
-godot --path /home/littlefrog/projects/writing_practice
+godot --path /path/to/writing_practice
 ```
 
 Launches fullscreen (1920×1280 base resolution, `canvas_items` stretch,
