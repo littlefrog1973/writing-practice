@@ -10,10 +10,16 @@ extends RefCounted
 ##
 ## Set shape (as returned by get_set()):
 ## { "id": String, "label": String, "font": FONT_THAI | FONT_LATIN,
-##   "combining": bool, "chars": PackedStringArray, "names": PackedStringArray }
+##   "combining": bool, "numeric": bool,
+##   "chars": PackedStringArray, "names": PackedStringArray }
 ##
 ## "combining" marks sets whose glyphs cannot stand alone (Thai vowels and tone
 ## marks); they are displayed on a dotted placeholder circle.
+##
+## "numeric" marks the sets whose characters stand for a quantity — the digits
+## and the Thai numerals, which are the same ten quantities written twice. Step
+## 10's counting activity asks here (value_of) before every character: a numeral
+## is counted out in objects before it is written, and nothing else is.
 
 const FONT_THAI := "thai"
 const FONT_LATIN := "latin"
@@ -159,6 +165,41 @@ static func is_combining(id: String) -> bool:
 	return get_set(id).get("combining", false)
 
 
+## True for the sets whose characters are quantities: "digits" and
+## "thai_numerals".
+static func is_numeric(id: String) -> bool:
+	return get_set(id).get("numeric", false)
+
+
+## The quantity a character stands for, or -1 when it does not stand for one —
+## every character of a non-numeric set, and anything not in the set at all.
+## The tracing scene counts objects out before a character with a value ≥ 0 and
+## goes straight to the demo for everything else, so -1 is the ordinary answer.
+static func value_of(id: String, chr: String) -> int:
+	if not is_numeric(id):
+		return -1
+	if Array(chars_of(id)).find(chr) == -1:
+		return -1
+	return numeral_value(chr)
+
+
+## Code point of "0" in each numeral system the catalog uses.
+const ZERO_CODES: PackedInt32Array = [0x0030, 0x0E50]  ## ASCII "0", Thai "๐".
+
+## The value of a single numeral character, read from its code point rather than
+## from its position in the set: ๓ is three because it is U+0E53, not because it
+## is the fourth thing in a list. A numeral typed into the wrong slot is then a
+## validate() error rather than a child counting four apples for ๓.
+static func numeral_value(chr: String) -> int:
+	if chr.length() != 1:
+		return -1
+	var code := chr.unicode_at(0)
+	for zero in ZERO_CODES:
+		if code >= zero and code <= zero + 9:
+			return code - zero
+	return -1
+
+
 ## The dotted circle a mark that cannot stand alone is shown on.
 const PLACEHOLDER := "◌"
 
@@ -210,10 +251,32 @@ static func validate() -> Dictionary:
 			if seen_chars.has(key):
 				return {"ok": false, "error": "set \"%s\": duplicate character \"%s\"" % [id, chr]}
 			seen_chars[key] = true
+		if set_def["numeric"]:
+			var problem := _check_numeric(id, chars)
+			if not problem.is_empty():
+				return {"ok": false, "error": problem}
 	if all().size() != SET_IDS.size():
 		return {"ok": false, "error": "built %d sets but SET_IDS lists %d"
 				% [all().size(), SET_IDS.size()]}
 	return {"ok": true}
+
+
+## A numeric set must be the ten quantities 0–9, each written once: the counting
+## activity draws value_of() objects for whatever it is given, so a character
+## that maps to nothing (or to eleven) would show a child the wrong number of
+## apples — quietly, and only for that one numeral. Returns "" when all is well.
+static func _check_numeric(id: String, chars: PackedStringArray) -> String:
+	var seen_values: Dictionary = {}
+	for chr in chars:
+		var value := numeral_value(chr)
+		if value < 0:
+			return "set \"%s\" is numeric but \"%s\" is not a numeral 0–9" % [id, chr]
+		if seen_values.has(value):
+			return "set \"%s\": two characters stand for %d" % [id, value]
+		seen_values[value] = true
+	if seen_values.size() != 10:
+		return "set \"%s\" is numeric but covers %d of the ten quantities" % [id, seen_values.size()]
+	return ""
 
 
 static func _build() -> Dictionary:
@@ -225,21 +288,22 @@ static func _build() -> Dictionary:
 		"english_lower": _make_set("english_lower", "English small letters", FONT_LATIN,
 				_split(LOWER_CHARS), _split(LOWER_CHARS)),
 		"digits": _make_set("digits", "Digits", FONT_LATIN,
-				_split(DIGIT_CHARS), DIGIT_NAMES),
+				_split(DIGIT_CHARS), DIGIT_NAMES, false, true),
 		"thai_numerals": _make_set("thai_numerals", "Thai numerals", FONT_THAI,
-				_split(THAI_NUMERAL_CHARS), THAI_NUMERAL_NAMES),
+				_split(THAI_NUMERAL_CHARS), THAI_NUMERAL_NAMES, false, true),
 		"thai_vowels": _make_set("thai_vowels", "Thai vowels & tone marks", FONT_THAI,
 				THAI_VOWEL_CHARS, THAI_VOWEL_NAMES, true),
 	}
 
 
 static func _make_set(id: String, label: String, font: String, chars: PackedStringArray,
-		names: PackedStringArray, combining: bool = false) -> Dictionary:
+		names: PackedStringArray, combining: bool = false, numeric: bool = false) -> Dictionary:
 	return {
 		"id": id,
 		"label": label,
 		"font": font,
 		"combining": combining,
+		"numeric": numeric,
 		"chars": chars,
 		"names": names,
 	}

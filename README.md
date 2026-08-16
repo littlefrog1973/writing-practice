@@ -160,8 +160,10 @@ a second, separate collection of them.
 godot --path . -- --tracing
 ```
 
-The first screen the child actually uses. One character at a time, in three
-states:
+The first screen the child actually uses. One character at a time. A numeral
+starts in a state of its own — **count** (Step 10, below), where the child taps
+out that many objects before writing the numeral — and every other character
+starts at the demo:
 
 1. **demo** — the character draws itself stroke by stroke, an orange finger-dot
    leading each line and the stroke's order number appearing with it;
@@ -344,6 +346,56 @@ them is short enough to be warned about by the dataset check.
 
 With them recorded the dataset is **complete: 137 of 137 characters**.
 
+## Counting objects (Step 10)
+
+Tracing "3" teaches the shape, not the amount. Before a **numeral** is written,
+that many things appear in the drawing box and the child taps them one at a
+time; each tap fills one in with a pop and a note a step higher than the last,
+the caption counts up, and when the last one lands it reads the character's own
+name from the catalog — "3 — three", "๓ — สาม" — and the tracing demo starts on
+its own.
+
+Both number sets get it. `digits` (0–9) and `thai_numerals` (๐–๙) are the same
+ten quantities written twice, and **the objects are the same for both**: ๓ and 3
+are three apples, seven is always seven fish. That sameness is the point — it is
+what ties the two numeral systems together for a child learning them at once.
+
+- **Which characters count** is the catalog's business, not the scene's: a set
+  is marked `numeric` and `CharSets.value_of(set_id, chr)` gives the quantity,
+  or −1 for everything else. `validate()` rejects a numeric set that is not the
+  ten quantities 0–9, each exactly once, and the value comes from the
+  character's own code point (๓ is three because it is U+0E53) rather than from
+  where it sits in a list. Every other set opens straight into the demo, exactly
+  as it did before, and `data/strokes/` is untouched by any of this.
+- **Zero is an empty basket**, finished by a single tap anywhere and captioned
+  "nothing — zero!". Zero is a quantity; skipping it would teach that it is not.
+- **Taps in any order.** The child is counting a set, not following a route, and
+  "wrong one" for touching the second apple first teaches obedience, not number.
+- **Counting is never scored** and writes nothing: stars stay a measure of
+  handwriting, and neither `progress.gd` nor `scorer.gd` was touched.
+- **Counting plays once per opening.** The score card's "again" and the panel's
+  "watch again" go to tracing and to the demo as they always did — a child on
+  their fifth go at 8 must not have to re-count eight balloons each time.
+
+The objects are **drawn in code** (`scripts/object_art.gd`), like the stars and
+the confetti and for the same reason: there is no `assets/images/` any more than
+there is an `assets/audio/`, so there is nothing to licence and nothing to
+account for later. Half a dozen kinds — apple, balloon, fish, ball, flower, leaf
+— each a handful of polygons, laid out on a `ceil(√n)`-column grid with the last
+row centred. Two things there were found by screenshotting it rather than by
+reading it: an object built from overlapping circles needs **one** silhouette
+drawn behind it (outlining each part turns an apple into a pumpkin), and a lone
+object gets a **capped** radius, or one balloon fills the whole box and hangs its
+string over the caption below.
+
+`scripts/count_objects.gd` is the node — one `Control`, everything in `_draw()`,
+nothing allocated while it animates, the rule the demo animator set. Touch is
+read in `_input()` gated on its own rect, as the recorder and the tracing scene
+do, and the decision itself is `tap_at()` in control-local coordinates, which is
+what lets the headless suite count without a screen. The notes are
+`ToneBank.count_tone()`, nine bells up a C major scale, synthesized with the
+score sounds when the scene loads.
+
 ## Stroke Recorder (dev tool, Step 3)
 
 ```sh
@@ -390,6 +442,7 @@ godot --headless --path . --script tests/test_stroke_data.gd
 godot --headless --path . --script tests/test_char_sets.gd
 godot --headless --path . --script tests/test_scorer.gd
 godot --headless --path . --script tests/test_progress.gd
+godot --headless --path . --script tests/test_count_objects.gd
 ```
 
 `test_stroke_data.gd` exercises `scripts/stroke_data.gd` (stroke JSON
@@ -402,7 +455,13 @@ checks the generated sounds; both `scorer.gd` and `tone_bank.gd` are static and
 pure, which is what lets it run with no display. `test_progress.gd` covers the
 stars a child keeps: best-of-not-latest, a missing file, a truncated one, JSON
 of the wrong shape, a hand-edited one, merging two histories, and the whole
-load-record-save round trip the tracing scene makes.
+load-record-save round trip the tracing scene makes. `test_count_objects.gd`
+covers the counting: what each numeral is worth in both sets and that nothing
+else is worth anything, the object layout (n places, all inside the box, none
+overlapping), a tap sequence counting 1…n in order and finishing once, taps that
+miss or repeat counting nothing, zero finishing on a single tap, and the nine
+notes. It drives the node through `tap_at()`, so it needs no display; whether a
+finger actually reaches an object is checked by touch in `test_menus.gd`.
 
 The recorder, tracing and menu suites drive the real scenes with synthetic
 touch events, so they need a display and open a small window for a few seconds:
@@ -431,7 +490,9 @@ finger**, never by emitting `pressed` and never with a key: a button that is
 off-screen, covered or too small fails these checks the way it would fail a
 five-year-old. (It is what caught the score card covering the side panel's
 "back".) It also checks that the stars are on disk by reading the file back,
-which is exactly what the next launch does.
+which is exactly what the next launch does. Since Step 10 it also counts the
+objects of a numeral with real touches on its way into the tracing scene — the
+half of the counting activity a headless suite cannot reach.
 
 All three point `CharSets.stroke_dir` at a scratch directory under `user://`,
 so they never write to — and never depend on what has been recorded in —

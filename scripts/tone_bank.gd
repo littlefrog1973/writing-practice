@@ -38,12 +38,31 @@ const STAR_SECONDS := 0.8
 ## invited to try again, and the sound has to sound like an invitation.
 const FANFARE_SECONDS := 1.8
 
+## One note per object counted (Step 10), climbing a C major scale: C5 up to D6,
+## nine notes for the nine objects. The pitch rising with the count is the point
+## — it is the same thing counting aloud does, and a child hears "more" in it
+## before they can read the caption. Short, because nine of them are heard in a
+## row and a long ring would turn into a chord.
+const COUNT_FREQS: Array[float] = [
+	523.25, 587.33, 659.25, 698.46, 783.99, 880.0, 987.77, 1046.5, 1174.66,
+]
+const COUNT_SECONDS := 0.5
+
 
 ## The note that rings as star `index` (0-based) lands on the card.
 static func star_tone(index: int) -> AudioStreamWAV:
 	var freq: float = STAR_FREQS[clampi(index, 0, STAR_FREQS.size() - 1)]
 	var buffer := _silence(STAR_SECONDS)
 	_bell(buffer, 0.0, freq, 1.0, 1.0)
+	return _to_stream(buffer)
+
+
+## The note that rings as object `index` (0-based) is counted. Indexes past the
+## scale keep the top note rather than running out of sound.
+static func count_tone(index: int) -> AudioStreamWAV:
+	var freq: float = COUNT_FREQS[clampi(index, 0, COUNT_FREQS.size() - 1)]
+	var buffer := _silence(COUNT_SECONDS)
+	_bell(buffer, 0.0, freq, 1.0, 0.7)
 	return _to_stream(buffer)
 
 

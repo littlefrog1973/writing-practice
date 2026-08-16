@@ -6,6 +6,10 @@ extends Control
 ## --mouse to trace with a mouse).
 ##
 ## State machine, one character at a time:
+##   COUNT  numerals only (Step 10): that many objects to tap, one at a time,
+##          before the character is written. Tracing "3" teaches the shape, not
+##          the amount, and the two are learned together or not at all. Every
+##          other set opens straight into DEMO.
 ##   DEMO   the character draws itself stroke by stroke, numbered in order;
 ##          "watch again" replays it, keeping whatever has been traced already.
 ##   TRACE  the current stroke is a dotted guide with a start marker and a
@@ -54,6 +58,7 @@ signal back_requested(set_id: String)
 
 enum State {
 	EMPTY,  ## The character has no recorded strokes — nothing to trace.
+	COUNT,  ## Numerals only: count the objects before writing the numeral.
 	DEMO,
 	TRACE,
 	SCORE,
@@ -95,6 +100,10 @@ const MIN_TRACE_RATIO := 0.4
 @onready var _score_message: Label = $ScoreOverlay/Card/Margin/VBox/Message
 @onready var _score_hint: Label = $ScoreOverlay/Card/Margin/VBox/Hint
 @onready var _confetti: CPUParticles2D = $ScoreOverlay/Confetti
+@onready var _count_overlay: Control = $CountOverlay
+@onready var _count_objects: Control = $CountOverlay/Objects
+@onready var _count_caption: Label = $CountOverlay/Caption
+@onready var _count_player: AudioStreamPlayer = $Sounds/Count
 @onready var _fanfare_player: AudioStreamPlayer = $Sounds/Fanfare
 ## One player per star so the three notes can ring together as a chord.
 @onready var _star_players: Array[AudioStreamPlayer] = [
@@ -127,12 +136,17 @@ var _stars := 0  ## Stars awarded for the character on screen, 0 before scoring.
 ## the kind of hitch the demo was kept allocation-free to avoid.
 var _fanfares: Array[AudioStreamWAV] = []
 
+## One note per object counted, synthesized once beside the score sounds.
+var _count_tones: Array[AudioStreamWAV] = []
+
 
 func _ready() -> void:
 	_set_ids = CS.recordable_ids()
 	_live_line = _make_line(_ink_layer, LIVE_COLOR, INK_WIDTH)
 	_demo.finished.connect(_on_demo_finished)
 	_score_stars.star_popped.connect(_on_star_popped)
+	_count_objects.counted.connect(_on_counted)
+	_count_objects.finished.connect(_on_counting_finished)
 	_build_sounds()
 	_connect_buttons()
 	if _set_ids.is_empty():
@@ -180,8 +194,72 @@ func open(set_id: String, chr: String) -> void:
 
 # --- state machine -----------------------------------------------------------
 
+## Count the objects before writing the numeral. Only reached for a character
+## the catalog gives a value to — the digits and the Thai numerals, which are
+## the same ten quantities and therefore show the same objects: ๓ and 3 are
+## three apples both times, and that is what ties the two numeral systems
+## together for a child who is learning both at once.
+##
+## Nothing here is scored and nothing is written down. Stars are a measure of
+## handwriting, and counting is not handwriting.
+func _enter_count(value: int) -> void:
+	_state = State.COUNT
+	_cancel_live_stroke()
+	_score_overlay.visible = false
+	_dotted.clear()
+	_upcoming.visible = false
+	_ink_layer.visible = false
+	_demo.stop()
+	_demo.visible = false
+	# The guide glyph is the answer to the question being asked. It comes back
+	# the moment the counting is done.
+	_glyph.visible = false
+	var box := _box()
+	_count_overlay.position = box.position
+	_count_overlay.size = box.size
+	_count_overlay.visible = true
+	_count_objects.set_count(value)
+	_count_caption.text = "how many?"
+	_refresh_labels()
+	_say("Count them, then write \"%s\"." % _current_char())
+
+
+## A new object has just been counted: ring the next note up the scale and say
+## the number. The last one adds the character's own name from the catalog —
+## "3 — three", "๓ — สาม" — which is the moment the quantity and the symbol are
+## put side by side.
+func _on_counted(count: int) -> void:
+	_count_player.stream = _count_tones[clampi(count - 1, 0, _count_tones.size() - 1)]
+	_count_player.play()
+	var value: int = CS.value_of(_current_set_id(), _current_char())
+	var name := CS.name_of(_current_set_id(), _current_char())
+	if count >= value:
+		# Zero is named for what it is rather than shown as a count of nothing:
+		# "0 — zero" beside an empty basket says less than "nothing — zero!".
+		_count_caption.text = ("nothing — %s!" % name) if value == 0 \
+				else "%s — %s" % [_current_char(), name]
+		_say("%d — %s." % [value, name])
+	else:
+		_count_caption.text = str(count)
+
+
+func _on_counting_finished() -> void:
+	if _state == State.COUNT:
+		_enter_demo()
+
+
+## Put the counting away: the overlay goes and the guide glyph comes back.
+## Called by every state that follows COUNT, because "start over" can jump
+## straight from counting to tracing.
+func _hide_count() -> void:
+	_count_player.stop()
+	_count_overlay.visible = false
+	_glyph.visible = true
+
+
 func _enter_demo() -> void:
 	_state = State.DEMO
+	_hide_count()
 	_cancel_live_stroke()
 	_score_overlay.visible = false
 	_dotted.clear()
@@ -198,6 +276,7 @@ func _enter_demo() -> void:
 ## the middle of a character must not throw away the strokes already traced.
 func _enter_trace() -> void:
 	_state = State.TRACE
+	_hide_count()
 	_demo.stop()
 	_demo.visible = false
 	_score_overlay.visible = false
@@ -371,6 +450,11 @@ func _build_sounds() -> void:
 		_star_players[i].stream = TB.star_tone(i)
 	for stars in range(1, SC.MAX_STARS + 1):
 		_fanfares.append(TB.fanfare(stars))
+	# Nine counting notes: half a second each, and built here with the rest
+	# rather than when a numeral is opened — synthesizing audio mid-activity is
+	# what once teleported the demo hand through its first stroke.
+	for i in TB.COUNT_FREQS.size():
+		_count_tones.append(TB.count_tone(i))
 
 
 ## End the celebration early — the child pressed "again" or moved on while the
@@ -380,6 +464,7 @@ func _hush() -> void:
 	for player in _star_players:
 		player.stop()
 	_fanfare_player.stop()
+	_count_player.stop()
 	_stars = 0
 	_score_stars.set_stars(0, SC.MAX_STARS)
 
@@ -426,11 +511,18 @@ func _open_char(index: int) -> void:
 	_build_guide()
 	if _strokes.is_empty():
 		_state = State.EMPTY
+		_hide_count()
 		_upcoming.visible = false
 		_demo.visible = false
 		_refresh_labels()
 		_say("\"%s\" has not been recorded yet — try the next character."
 				% _current_char())
+		return
+	# A numeral is counted out before it is written; everything else opens
+	# straight into the demo, exactly as it did before Step 10.
+	var value: int = CS.value_of(_current_set_id(), _current_char())
+	if value >= 0:
+		_enter_count(value)
 		return
 	_enter_demo()
 
@@ -485,8 +577,12 @@ func _refresh_labels() -> void:
 	var id := _current_set_id()
 	var chr := _current_char()
 	_set_label.text = "%s  %d/%d" % [CS.label_of(id), _char_index + 1, _chars().size()]
-	_char_name.text = CS.name_of(id, chr)
+	# While the objects are being counted the character's name is the answer to
+	# the question on screen — the guide glyph is hidden for the same reason.
+	_char_name.text = "how many?" if _state == State.COUNT else CS.name_of(id, chr)
 	match _state:
+		State.COUNT:
+			_stroke_info.text = "count them"
 		State.DEMO:
 			_stroke_info.text = "watch"
 		State.TRACE:

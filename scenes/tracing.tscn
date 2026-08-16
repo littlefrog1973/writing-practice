@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Theme" path="res://assets/theme/app_theme.tres" id="1_theme"]
 [ext_resource type="Script" path="res://scripts/tracing.gd" id="2_script"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/dotted_guide.gd" id="4_dotted"]
 [ext_resource type="Script" path="res://scripts/star_row.gd" id="5_stars"]
 [ext_resource type="Script" path="res://scripts/confetti.gd" id="6_confetti"]
+[ext_resource type="Script" path="res://scripts/count_objects.gd" id="7_count"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(1, 1, 1, 1)
@@ -94,6 +95,38 @@ script = ExtResource("4_dotted")
 script = ExtResource("3_animator")
 
 [node name="InkLayer" type="Node2D" parent="."]
+
+[node name="CountOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 1
+offset_left = 80.0
+offset_top = 170.0
+offset_right = 1040.0
+offset_bottom = 1130.0
+mouse_filter = 2
+
+[node name="Caption" type="Label" parent="CountOverlay"]
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 16.0
+offset_bottom = 170.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.2, 0.22, 0.3, 1)
+theme_override_font_sizes/font_size = 96
+text = "count them"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+clip_text = true
+
+[node name="Objects" type="Control" parent="CountOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 180.0
+mouse_filter = 2
+script = ExtResource("7_count")
 
 [node name="TopBar" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -330,3 +363,6 @@ script = ExtResource("6_confetti")
 
 [node name="Fanfare" type="AudioStreamPlayer" parent="Sounds"]
 volume_db = -2.0
+
+[node name="Count" type="AudioStreamPlayer" parent="Sounds"]
+volume_db = -3.0

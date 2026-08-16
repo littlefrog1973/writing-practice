@@ -150,12 +150,24 @@ func test_opening_a_character() -> void:
 	check(tracing.name == "Tracing", "tapping a character opens the tracing scene")
 	check(tracing._current_set_id() == TEST_SET and tracing._current_char() == TRACED_CHAR,
 			"on the character that was tapped")
-	check(tracing._state == TR.State.DEMO, "which starts by showing how it is written")
+	# Step 10: a numeral is counted before it is written. This is the half of
+	# GATE 10 a headless suite cannot reach — whether a finger actually lands on
+	# an object drawn into an overlay over the drawing box.
+	check(tracing._state == TR.State.COUNT,
+			"which starts by asking how many \"%s\" is" % TRACED_CHAR)
+	check(tracing._count_overlay.visible and not tracing._glyph.visible,
+			"with the objects up and the answer — the guide glyph — hidden")
+	check(tracing._count_objects.centres().size() == CS.value_of(TEST_SET, TRACED_CHAR),
+			"showing one object per unit (%d)" % tracing._count_objects.centres().size())
 
 	# The demo is watched at speed: what is being tested is the way through the
 	# app, not how long a child watches an animation for.
 	tracing._demo.speed = 9000.0
 	tracing._demo.pause = 0.05
+	await _count_them(tracing)
+	check(tracing._state == TR.State.DEMO, "counting them all shows how it is written")
+	check(not tracing._count_overlay.visible and tracing._glyph.visible,
+			"and puts the objects away again")
 	await _until(func() -> bool: return tracing._state == TR.State.TRACE, 8.0)
 	check(tracing._state == TR.State.TRACE, "and hands over to tracing")
 
@@ -226,6 +238,7 @@ func test_a_worse_attempt() -> void:
 	var tracing := current_scene
 	tracing._demo.speed = 9000.0
 	tracing._demo.pause = 0.05
+	await _count_them(tracing)
 	await _until(func() -> bool: return tracing._state == TR.State.TRACE, 8.0)
 	for i in tracing._strokes.size():
 		await _draw(_scribble(tracing), 90.0)
@@ -239,6 +252,9 @@ func test_a_worse_attempt() -> void:
 	await _tap(tracing.get_node("ScoreOverlay/Card/Margin/VBox/Buttons/Again"))
 	check(tracing._state == TR.State.TRACE and tracing._traced.is_empty(),
 			"\"again\" wipes the ink and offers the character back")
+	# A child on their fifth go at a numeral must not have to count it out again.
+	check(not tracing._count_overlay.visible,
+			"without counting the objects a second time")
 	await _tap(tracing.get_node("SidePanel/Margin/VBox/Back"))
 	await _wait_for("CharacterSelect")
 	check(_stars_of(_char_button(TRACED_CHAR))._stars == 3,
@@ -394,6 +410,24 @@ func _tap(control: Control) -> void:
 	_send_touch(centre, false)
 	for i in 3:
 		await process_frame
+
+
+## Count every object with a finger — a real touch on each one where it is
+## drawn, not a call into the node — then wait for the demo the last one starts.
+## Nothing about the counting is scored, so this is only ever the way through.
+func _count_them(tracing: Node) -> void:
+	var objects: Control = tracing._count_objects
+	var origin := objects.get_global_rect().position
+	# Zero has no objects: its basket takes one tap anywhere in the overlay.
+	var centres: PackedVector2Array = objects.centres()
+	if centres.is_empty():
+		centres = PackedVector2Array([objects.size * 0.5])
+	for centre in centres:
+		_send_touch(origin + centre, true)
+		await process_frame
+		_send_touch(origin + centre, false)
+		await process_frame
+	await _until(func() -> bool: return tracing._state != TR.State.COUNT, 5.0)
 
 
 func _draw(path: PackedVector2Array, spacing: float = 14.0) -> void:

@@ -8,6 +8,14 @@ The project directory is empty (greenfield).
 
 **How to use this plan**: execute one step at a time, in order. Each step ends with a **GATE** — a concrete check that must pass (with the user confirming touch-related gates on the real hardware) before starting the next step. If a gate fails, fix within the step; do not proceed.
 
+### Status (revised 2026-08-16)
+
+**Steps 0–9 are built and their gates passed** — the app ships as a Linux binary and a Windows .exe. Do not re-implement them; they are kept below as the record of what exists.
+
+**Step 10 is the new work**: the digits and Thai-numeral sets teach the *shape* of a number but never its *quantity*. A child can trace "3" perfectly without connecting it to three of anything. Step 10 adds a counting activity to those two sets — objects drawn on screen that the child taps and counts before writing the numeral. Only Step 5's state machine is amended; everything else is additive.
+
+**Step 10 is built (2026-08-16) and the headless half of GATE 10 has passed**: `tests/test_count_objects.gd` (80 checks) plus the eight existing suites (39 / 56 / 58 / 70 / 137-of-137 / 28 / 51 / 56) and both exports rebuilt and booted from their own pack. **The touch half of GATE 10 is waiting on the user** on the Surface Go, Fedora and Windows 11 both. `docs/HANDOFF-step10.md` is the brief.
+
 ## Key design decisions (apply throughout)
 
 - Godot 4.x (latest stable, ≥4.3), GDScript, **Compatibility renderer** (Surface Go weak iGPU).
@@ -17,6 +25,7 @@ The project directory is empty (greenfield).
 - **Touch input**: handle `InputEventScreenTouch`/`InputEventScreenDrag`; project settings: `input_devices/pointing/emulate_mouse_from_touch = true` (UI buttons work), `emulate_touch_from_mouse = true` only behind a debug flag for desktop testing.
 - **Scoring**: per stroke — coverage (fraction of guide points within tolerance of trace), deviation (mean trace→guide polyline distance), direction/order correctness → 1–3 stars. Generous, child-friendly tolerances; retry is encouraged, never a "fail" state.
 - **Thai vowels/tone marks**: traced standalone at large size with a dotted placeholder circle where the consonant would sit.
+- **No binary assets beyond the two OFL fonts** (added Step 10, but already the practice through Step 9): the score sounds are synthesized in `tone_bank.gd` and the stars and confetti are drawn in code, precisely so that nothing enters the repo whose provenance cannot be reconstructed. Counting artwork follows the same rule — drawn with `_draw()`, not imported.
 
 ## Project structure (target)
 
@@ -38,7 +47,9 @@ writing_practice/
     ├── tracing.gd        # input capture, guide rendering, state machine
     ├── stroke_animator.gd# animated stroke-order demo (growing Line2D + finger dot)
     ├── scorer.gd         # accuracy scoring
-    └── progress.gd       # per-character stars → user://progress.json
+    ├── progress.gd       # per-character stars → user://progress.json
+    ├── count_objects.gd  # (Step 10) tap-to-count panel for the number sets
+    └── object_art.gd     # (Step 10) the countable things, drawn in code
 ```
 
 ---
@@ -90,6 +101,8 @@ writing_practice/
 
 **GATE 5**: on the Surface Go, the animation plays smoothly (no visible stutter); user traces a full character by finger with responsive ink (no perceptible lag); stroke progression works; "watch again" replays.
 
+> **Amended by Step 10** — the only existing step that changes. A `COUNT` state is inserted ahead of `DEMO`, entered only for the `digits` and `thai_numerals` sets. Every other set opens straight into `DEMO` exactly as it does now.
+
 ## Step 6 — Scoring & feedback
 
 1. Implement `scorer.gd` per the scoring design; tune thresholds child-friendly.
@@ -119,8 +132,35 @@ writing_practice/
 
 **GATE 9 (final)**: Linux export runs standalone (outside the editor) on Fedora with working touch; Windows .exe runs on Win11 on the same machine with working touch, correct Thai rendering, and stars persisting. Performance acceptable (smooth inking) on both.
 
+## Step 10 — Counting objects for the number sets (new)
+
+**Why**: tracing "3" teaches the shape, not the amount. Before writing a numeral the child counts that many things by tapping them, so the quantity and the symbol are learned together. Both number sets get it — `digits` (0–9) and `thai_numerals` (๐–๙) are the same ten quantities, and sharing the activity is what links ๓ to 3.
+
+**Design decisions**
+
+- **Tap-to-count, then trace.** Opening a numeral shows N objects in the drawing box. Each tap fills one in with a pop and a rising note; the caption counts up "1… 2… 3"; when the last one lands it reads the character's own name from the catalog ("three", "สาม") and the tracing demo starts on its own. Taps in any order — the child is counting a set, not following an order.
+- **Objects are drawn, not imported** — `object_art.gd`, `_draw()` only, in the manner of `star_row.gd` (`draw_colored_polygon` + `draw_polyline`) and `confetti.gd`. Keeps THIRDPARTY.txt untouched and scales to any size. Half a dozen kinds (apple, balloon, fish, ball, flower, leaf), each a few polygons and circles.
+- **One kind per value, fixed.** A value→kind table means 3 is *always* three apples and 7 is always seven fish, so the child recognises the set, while different digits still look different. The same table serves ๓, which is what makes the two numeral systems visibly the same quantity.
+- **Zero is an empty basket**, drawn with nothing in it, captioned "nothing — zero!", and finished by a single tap anywhere. Zero is a quantity, and skipping it would teach that it is not.
+- **Counting is not scored** and touches no progress data: stars stay a measure of handwriting. `progress.gd` and `scorer.gd` are not modified.
+- **Counting plays once per opening.** The score card's "again" and the panel's "watch again" go to tracing and demo as they do today — a child on their fifth attempt at 8 should not have to re-count eight balloons each time.
+
+**Work**
+
+1. `scripts/char_sets.gd` — add the numeral→quantity mapping to the catalog, which is already the single source of truth for what a character *is*: a `numeric: bool` flag on the two number sets and `value_of(id, chr) -> int` (returns −1 for non-numeric sets). Extend `validate()` so a numeric set whose characters do not map to 0–9 is an error. No new set ids, no data-file changes — `data/strokes/` is untouched by this step.
+2. `scripts/object_art.gd` — new, static and pure, no nodes: `KINDS` table, `kind_for_value(value) -> int`, `draw_object(canvas, kind, centre, radius, filled)`, `draw_basket(canvas, centre, radius)`, plus `layout(count, box) -> PackedVector2Array` computing centres on a `ceil(sqrt(n))`-column grid with the last row centred, sized so every target is a comfortable finger tap in the 960 px box. `layout()` being pure geometry is what lets the tests check spacing headless.
+3. `scripts/count_objects.gd` — new `Control`, modelled on `star_row.gd`: holds `_count`, `_tapped`, and a pop clock; `_draw()` renders untapped objects as faint outlines and tapped ones filled; `_gui_input()` handles `InputEventScreenTouch` and maps a press to the nearest centre within its radius; emits `counted(n)` per new object and `finished` once all N are in (or on the first tap when N is 0). One node, nothing allocated mid-animation.
+4. `scripts/tone_bank.gd` — add `count_tone(index) -> AudioStreamWAV`, one rising bell per object using the existing `_bell()`; a nine-note scale so the pitch climbs with the count.
+5. `scenes/tracing.tscn` — add `CountOverlay` (Control over the DrawBox rect, holding the `CountObjects` node and a `Caption` Label) and a `Sounds/Count` player. Hidden for every non-numeric set.
+6. `scripts/tracing.gd` — add `State.COUNT`; `_open_char()` enters it instead of `_enter_demo()` when `CS.value_of()` is ≥ 0; `_enter_count()` sizes the overlay to `_box()`, hides the guide glyph and demo, and wires `counted`/`finished`; `finished` → `_enter_demo()`. `_on_touch()` already ignores everything outside `State.TRACE`, so tracing input needs no change; `_refresh_labels()` gains a `COUNT` case ("count them"), and `_hush()` stops the count player.
+7. `tests/test_count_objects.gd` — new headless test: `value_of()` across both number sets and −1 elsewhere; `layout()` returns N centres, all inside the box and none overlapping; a simulated tap sequence emits `counted` 1…N in order and `finished` exactly once; out-of-range taps are ignored; N = 0 finishes on the first tap; `count_tone()` returns a non-empty stream. Register it wherever the existing suite is listed.
+8. `README.md` — a "Counting objects (Step 10)" section beside the existing per-step sections, and Step 9's export commands re-run to refresh both builds.
+
+**GATE 10**: headless — `tests/test_count_objects.gd` passes and the whole existing suite plus the dataset validator still pass untouched. On the Surface Go by finger: opening "3" shows three tappable objects; each tap pops one with a rising note and the count updates; after the third, the name shows and the tracing demo starts by itself; "๓" shows the same three objects with "สาม"; "0" shows an empty basket and one tap moves on; a Thai consonant and an English letter open straight into the demo with no counting overlay and no visual change from today; the score card's "again" returns to tracing without re-counting. Finally, both exports rebuilt and the Windows .exe re-checked on Win11 (GATE 9 re-run).
+
 ## Out of scope (future)
 
-- Voice clips for character names (ก ไก่ spoken aloud).
+- Voice clips for character names (ก ไก่ spoken aloud), and counting aloud.
+- Counting above 9, arithmetic, or quantity practice detached from writing.
 - Word/spelling practice; vowels attached to real consonants.
 - Android/tablet export.
