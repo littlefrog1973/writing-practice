@@ -28,8 +28,11 @@ requires you to rename it — a Reserved Font Name cannot be carried by a
 modified version.
 
 An exported build also embeds the Godot engine (MIT) and its third-party
-components. If you distribute binaries, ship the notice with them:
-`Engine.get_license_text()` and `Engine.get_copyright_info()` produce it.
+components — 102 of them. `THIRDPARTY.txt` is their collected notice, generated
+from `Engine.get_license_text()` and `Engine.get_copyright_info()`. It and
+`LICENSE` are packed **inside both builds** along with the two `OFL.txt`, so a
+binary copied off on a USB stick still carries every notice it owes. Regenerate
+it if the engine version changes.
 
 The recorded stroke data in `data/strokes/` is original work, authored by hand
 on a touch screen, and is MIT along with the code.
