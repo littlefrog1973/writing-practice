@@ -235,7 +235,7 @@ func _on_counted(count: int) -> void:
 	var name := CS.name_of(_current_set_id(), _current_char())
 	if count >= value:
 		# Zero is named for what it is rather than shown as a count of nothing:
-		# "0 — zero" beside an empty basket says less than "nothing — zero!".
+		# "0 — zero" beside an empty box says less than "nothing — zero!".
 		_count_caption.text = ("nothing — %s!" % name) if value == 0 \
 				else "%s — %s" % [_current_char(), name]
 		_say("%d — %s." % [value, name])

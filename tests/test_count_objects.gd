@@ -46,6 +46,7 @@ func _main() -> void:
 	await process_frame
 	test_values()
 	test_kinds()
+	test_colours()
 	test_layout()
 	await test_counting()
 	await test_zero()
@@ -95,7 +96,7 @@ func test_kinds() -> void:
 	check(same, "the value→object table is fixed, not random")
 	check(OA.kind_for_value(3) == OA.VALUE_KINDS[3] and OA.kind_for_value(7) == OA.VALUE_KINDS[7],
 			"three is always the same thing, and so is seven")
-	check(OA.kind_for_value(0) == OA.KIND_NONE, "zero has no object — it has a basket")
+	check(OA.kind_for_value(0) == OA.KIND_NONE, "zero has no object — nothing is drawn for it")
 	check(OA.kind_for_value(-1) == OA.KIND_NONE and OA.kind_for_value(99) == OA.KIND_NONE,
 			"and a value outside 0–9 has none either")
 	var kinds: Dictionary = {}
@@ -104,6 +105,32 @@ func test_kinds() -> void:
 		check(kind >= 0 and kind < OA.FILLS.size(), "%d has an object that can be drawn" % value)
 		kinds[kind] = true
 	check(kinds.size() >= 4, "with enough different objects that the numbers do not blur together")
+
+
+## An object waiting to be counted is drawn in a pale wash of its own colour,
+## not as a hollow outline. Colour is checkable headless and worth checking: the
+## whole difference between "there are things there" and "there is a diagram of
+## things there" is in these two numbers, and a wash pushed too far towards white
+## brings the hollow version back without anyone noticing.
+func test_colours() -> void:
+	print("pale before the tap, full colour after:")
+	for value in range(1, 10):
+		var kind := OA.kind_for_value(value)
+		var pale := OA.fill_colour(kind, false)
+		var full := OA.fill_colour(kind, true)
+		check(pale != full, "%d: an uncounted object is not the same colour as a counted one"
+				% value)
+		check(pale.get_luminance() > full.get_luminance(),
+				"%d: and it is the paler of the two" % value)
+		# Still coloured: a wash with no colour left in it is the white box.
+		var spread: float = maxf(pale.r, maxf(pale.g, pale.b)) \
+				- minf(pale.r, minf(pale.g, pale.b))
+		check(spread > 0.03, "%d: but pale in its own colour, not grey (spread %.3f)"
+				% [value, spread])
+		check(pale.a >= 1.0, "%d: and opaque, so the overlapping parts show no seams" % value)
+		var edge := OA.edge_colour(kind, false)
+		check(edge.get_luminance() < pale.get_luminance(),
+				"%d: with an outline darker than its wash, holding the shape" % value)
 
 
 func test_layout() -> void:
@@ -129,6 +156,8 @@ func test_layout() -> void:
 		check(inside, "all %d inside the box, whole" % count)
 		check(apart, "and none of the %d overlapping another (r=%.0f)" % [count, radius])
 	check(OA.layout(0, BOX).is_empty(), "zero has no objects to place")
+	check(is_zero_approx(OA.radius_for(0, BOX)),
+			"and none to size — nothing at all is drawn for it")
 	# A finger, not a mouse pointer: nine objects is the tightest case there is.
 	check(OA.radius_for(9, BOX) > 60.0,
 			"even nine of them are a comfortable finger target (r=%.0f)"
@@ -165,7 +194,7 @@ func test_zero() -> void:
 	print("zero:")
 	var node := _make_node()
 	node.set_count(0)
-	check(node.centres().is_empty(), "an empty basket has nothing in it")
+	check(node.centres().is_empty(), "nothing is laid out, because nothing is what none looks like")
 	check(_finished == 0, "and does not finish by itself — zero is an answer, not a skip")
 	node.tap_at(Vector2(120.0, 300.0))
 	check(_counted == [0], "one tap anywhere is the child's answer (got %s)" % str(_counted))

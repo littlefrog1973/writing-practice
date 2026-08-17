@@ -14,7 +14,9 @@ The project directory is empty (greenfield).
 
 **Step 10 is the new work**: the digits and Thai-numeral sets teach the *shape* of a number but never its *quantity*. A child can trace "3" perfectly without connecting it to three of anything. Step 10 adds a counting activity to those two sets — objects drawn on screen that the child taps and counts before writing the numeral. Only Step 5's state machine is amended; everything else is additive.
 
-**Step 10 is built (2026-08-16) and the headless half of GATE 10 has passed**: `tests/test_count_objects.gd` (80 checks) plus the eight existing suites (39 / 56 / 58 / 70 / 137-of-137 / 28 / 51 / 56) and both exports rebuilt and booted from their own pack. **The touch half of GATE 10 is waiting on the user** on the Surface Go, Fedora and Windows 11 both. `docs/HANDOFF-step10.md` is the brief.
+**Step 10 is built (2026-08-16) and the headless half of GATE 10 has passed**: `tests/test_count_objects.gd` (126 checks) plus the eight existing suites (39 / 56 / 58 / 70 / 137-of-137 / 28 / 51 / 56) and both exports rebuilt and booted from their own pack. **The touch half of GATE 10 is waiting on the user** on the Surface Go, Fedora and Windows 11 both. `docs/HANDOFF-step10.md` is the brief.
+
+**Two of Step 10's decisions were overturned on 2026-08-17, after looking at the screen** (the user's call, both of them): **zero draws nothing at all** rather than an empty basket — a basket is a thing, and a child asked "how many?" in front of a thing answers one; the tap that answers "none" is unchanged. And **an object waiting to be counted is a pale wash of its own colour**, not a hollow white outline — hollow read as a diagram of an apple rather than an apple. The "empty basket" wording below is left as written to keep the record straight; `object_art.gd`, `README.md` and `docs/HANDOFF-step10.md` describe what is actually there.
 
 ## Key design decisions (apply throughout)
 

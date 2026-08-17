@@ -418,7 +418,7 @@ func _tap(control: Control) -> void:
 func _count_them(tracing: Node) -> void:
 	var objects: Control = tracing._count_objects
 	var origin := objects.get_global_rect().position
-	# Zero has no objects: its basket takes one tap anywhere in the overlay.
+	# Zero has no objects at all: one tap anywhere in the empty overlay answers it.
 	var centres: PackedVector2Array = objects.centres()
 	if centres.is_empty():
 		centres = PackedVector2Array([objects.size * 0.5])

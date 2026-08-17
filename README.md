@@ -367,8 +367,16 @@ what ties the two numeral systems together for a child learning them at once.
   character's own code point (๓ is three because it is U+0E53) rather than from
   where it sits in a list. Every other set opens straight into the demo, exactly
   as it did before, and `data/strokes/` is untouched by any of this.
-- **Zero is an empty basket**, finished by a single tap anywhere and captioned
-  "nothing — zero!". Zero is a quantity; skipping it would teach that it is not.
+- **Zero is an empty box** — nothing is drawn at all — finished by a single tap
+  anywhere and captioned "nothing — zero!". Zero is a quantity; skipping it
+  would teach that it is not, and so would a basket: a basket is a thing, and a
+  child asked "how many?" in front of a thing answers one. Nothing is the only
+  honest picture of none.
+- **An object waiting to be counted is pale, not hollow.** It is drawn in a wash
+  of its own colour (`PALE_FILL_MIX`), with its outline washed out less so the
+  shape still holds; the tap brings the full colour and the details — the
+  stalk, the eye, the seams — together. A hollow outline on white was the first
+  version and read as a diagram of an apple rather than an apple.
 - **Taps in any order.** The child is counting a set, not following a route, and
   "wrong one" for touching the second apple first teaches obedience, not number.
 - **Counting is never scored** and writes nothing: stars stay a measure of
@@ -382,11 +390,13 @@ the confetti and for the same reason: there is no `assets/images/` any more than
 there is an `assets/audio/`, so there is nothing to licence and nothing to
 account for later. Half a dozen kinds — apple, balloon, fish, ball, flower, leaf
 — each a handful of polygons, laid out on a `ceil(√n)`-column grid with the last
-row centred. Two things there were found by screenshotting it rather than by
+row centred. Three things there were found by screenshotting it rather than by
 reading it: an object built from overlapping circles needs **one** silhouette
-drawn behind it (outlining each part turns an apple into a pumpkin), and a lone
+drawn behind it (outlining each part turns an apple into a pumpkin), a lone
 object gets a **capped** radius, or one balloon fills the whole box and hangs its
-string over the caption below.
+string over the caption below, and an uncounted object wants a pale wash of its
+own colour rather than a hollow outline — a picture of the thing, not a diagram
+of it.
 
 `scripts/count_objects.gd` is the node — one `Control`, everything in `_draw()`,
 nothing allocated while it animates, the rule the demo animator set. Touch is
@@ -459,8 +469,9 @@ load-record-save round trip the tracing scene makes. `test_count_objects.gd`
 covers the counting: what each numeral is worth in both sets and that nothing
 else is worth anything, the object layout (n places, all inside the box, none
 overlapping), a tap sequence counting 1…n in order and finishing once, taps that
-miss or repeat counting nothing, zero finishing on a single tap, and the nine
-notes. It drives the node through `tap_at()`, so it needs no display; whether a
+miss or repeat counting nothing, zero drawing nothing and finishing on a single
+tap, the pale wash being paler than the counted colour but still that colour,
+and the nine notes. It drives the node through `tap_at()`, so it needs no display; whether a
 finger actually reaches an object is checked by touch in `test_menus.gd`.
 
 The recorder, tracing and menu suites drive the real scenes with synthetic

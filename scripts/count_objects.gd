@@ -1,14 +1,15 @@
 extends Control
 ## The tap-to-count activity that comes before writing a numeral — Step 10.
 ##
-## set_count(n) puts n objects in the control, faint and waiting. Each tap fills
+## set_count(n) puts n objects in the control, pale and waiting. Each tap fills
 ## one in with a pop and emits `counted` with how many are now counted; when the
 ## last one lands — after its pop, not before, so the child sees the thing they
 ## just counted — `finished` follows once.
 ##
-## Zero is its own case: an empty basket, finished by a single tap anywhere.
-## Zero is a quantity, and a screen that skipped it would be teaching that it is
-## not.
+## Zero is its own case: an empty box with nothing drawn in it at all, finished
+## by a single tap anywhere. Zero is a quantity, and a screen that skipped it
+## would be teaching that it is not — but so would a basket, which is a thing,
+## and "how many?" in front of a thing has the answer one.
 ##
 ## Taps in any order. The child is counting a set, not following a route, and
 ## being told "wrong one" for touching the second apple first would be teaching
@@ -97,7 +98,7 @@ func set_count(count: int) -> void:
 
 ## Count the object under `point` (in this control's own coordinates). Returns
 ## the index counted, or -1 when the tap hit nothing new — a miss between two
-## objects, or one that has already been counted. Zero's basket counts on any
+## objects, or one that has already been counted. Zero's empty box counts on any
 ## tap and returns 0.
 ##
 ## The whole decision lives here rather than in _input so that the headless
@@ -153,8 +154,7 @@ func radius() -> float:
 
 func _draw() -> void:
 	if _count == 0:
-		OA.draw_basket(self, size * 0.5, OA.radius_for(0, Rect2(Vector2.ZERO, size)))
-		return
+		return  ## Nothing is what none looks like.
 	var kind := OA.kind_for_value(_count)
 	for i in _centres.size():
 		var scale := _pop_scale(i)

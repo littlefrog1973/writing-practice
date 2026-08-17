@@ -18,15 +18,15 @@ touched. Counting is never scored.
 
 On the Surface Go, from the main menu:
 
-1. **Digits → "3"** — three apples appear, faint, with "how many?" above them.
+1. **Digits → "3"** — three apples appear, pale pink, with "how many?" above them.
    Each tap fills one in with a pop and a note a step higher than the last, and
    the caption counts 1… 2… 3. After the third it reads **"3 — three"**, and
    half a second later the tracing demo starts on its own.
 2. **Thai numerals → "๓"** — the *same three apples*, and the caption ends
    **"๓ — สาม"**. That the two numeral systems show the same objects for the
    same quantity is the point of the step.
-3. **Digits → "0"** — an empty basket, and one tap anywhere on it moves on,
-   captioned "nothing — zero!".
+3. **Digits → "0"** — an empty box with nothing in it, and one tap anywhere in
+   it moves on, captioned "nothing — zero!".
 4. **A Thai consonant and an English letter** — open straight into the demo,
    with no counting overlay and nothing changed from before.
 5. **The score card's "again"** — back to tracing, *without* counting again. So
@@ -38,8 +38,9 @@ Then rebuild nothing — both builds are already rebuilt from this code — and 
 `build/windows/writing_practice.exe` on the Windows 11 partition once more, as
 GATE 9 asks: touch, looped Thai, inking, stars persisting.
 
-If the objects are too small, too big, or the wrong things, it is
-`scripts/object_art.gd` alone: `MAX_RADIUS_RATIO`, `FILL_RATIO`, `VALUE_KINDS`.
+If the objects are too small, too big, the wrong things, or too pale or too
+strong before the tap, it is `scripts/object_art.gd` alone: `MAX_RADIUS_RATIO`,
+`FILL_RATIO`, `VALUE_KINDS`, `PALE_FILL_MIX`, `PALE_EDGE_MIX`.
 If a tap is hard to land, `TAP_SLACK` in `scripts/count_objects.gd`. If the
 counting is unwelcome for one of the sets, `numeric` in `scripts/char_sets.gd`
 turns it off for that set and nothing else changes.
@@ -54,9 +55,10 @@ turns it off for that set and nothing else changes.
   that is not the ten quantities 0–9, each exactly once.
 - **`scripts/object_art.gd`** — new, static and pure, no nodes: `VALUE_KINDS`
   (the fixed value → object table), `kind_for_value()`, `layout()`,
-  `radius_for()`, `draw_object()`, `draw_basket()`. Six kinds — apple, balloon,
-  fish, ball, flower, leaf — drawn in `_draw()` calls, no imported art, for the
-  same reason `tone_bank.gd` synthesizes its sounds.
+  `radius_for()`, `draw_object()`, `fill_colour()`, `edge_colour()`. Six kinds —
+  apple, balloon, fish, ball, flower, leaf — drawn in `_draw()` calls, no
+  imported art, for the same reason `tone_bank.gd` synthesizes its sounds.
+  There is deliberately **no drawing function for zero**: see below.
 - **`scripts/count_objects.gd`** — new `Control`. `set_count(n)`, signals
   `counted(n)` and `finished`, `tap_at(local_point)` as the whole decision.
   One node, everything in `_draw()`, nothing allocated while it animates, and
@@ -69,10 +71,18 @@ turns it off for that set and nothing else changes.
   `_open_char()` only when `CS.value_of()` is ≥ 0. The guide glyph and the
   top-bar name are hidden while counting (both are the answer to the question on
   screen). `_hide_count()` is called by every state that can follow.
-- **`tests/test_count_objects.gd`** — 80 checks, headless.
+- **`tests/test_count_objects.gd`** — 126 checks, headless.
 
 ## Things worth knowing before changing any of it
 
+- **Zero draws nothing, and an uncounted object is pale rather than hollow.**
+  Both were changed after the step was first built and looked at. The basket
+  that used to stand for zero is a *thing*, and "how many?" in front of a thing
+  has the answer one — nothing at all is the only honest picture of none, and
+  the tap that answers it still counts. The hollow white outline that used to
+  mean "not yet counted" read as a diagram of an apple rather than an apple;
+  it is now a wash of the object's own colour (`PALE_FILL_MIX`, `PALE_EDGE_MIX`
+  in `object_art.gd`), and the tap brings the full colour and the details.
 - **An object built from overlapping shapes needs one silhouette, not an
   outline per part.** `_blob()` draws every part pushed out from the object's
   centre in the edge colour, then every part at its real size on top. Outlining
@@ -107,7 +117,7 @@ godot --headless --path . --script tests/test_stroke_data.gd     # 39 checks
 godot --headless --path . --script tests/test_char_sets.gd       # 56 checks
 godot --headless --path . --script tests/test_scorer.gd          # 58 checks
 godot --headless --path . --script tests/test_progress.gd        # 70 checks
-godot --headless --path . --script tests/test_count_objects.gd   # 80 checks
+godot --headless --path . --script tests/test_count_objects.gd   # 126 checks
 godot --headless --path . --script tests/validate_dataset.gd     # 137/137
 godot --path . -w --resolution 960x640 --script tests/test_recorder.gd  # 28, needs a display
 godot --path . -w --resolution 960x640 --script tests/test_tracing.gd   # 51, needs a display

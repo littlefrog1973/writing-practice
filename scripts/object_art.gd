@@ -20,11 +20,11 @@ extends RefCounted
 
 enum Kind { APPLE, BALLOON, FISH, BALL, FLOWER, LEAF }
 
-const KIND_NONE := -1  ## Zero has no object — it has an empty basket.
+const KIND_NONE := -1  ## Zero has no object, and nothing is drawn for it.
 
 ## Which object stands for each quantity. Index is the value, 0–9.
 const VALUE_KINDS: Array[int] = [
-	KIND_NONE,      # 0 — the empty basket
+	KIND_NONE,      # 0 — an empty box, drawn with nothing in it
 	Kind.BALLOON,   # 1
 	Kind.FISH,      # 2
 	Kind.APPLE,     # 3
@@ -50,16 +50,17 @@ const FILLS: Array[Color] = [
 const LEAF_GREEN := Color(0.30, 0.68, 0.35)  ## The apple's leaf and the stalks.
 const STALK_BROWN := Color(0.45, 0.32, 0.20)
 const FLOWER_MIDDLE := Color(1.0, 0.85, 0.25)
-const BASKET_BROWN := Color(0.62, 0.45, 0.26)
 
-## An object still to be counted: the same silhouette, hollow, so the child can
-## see what is coming and how many are left without it competing with the ones
-## already counted. The hollow fill is opaque rather than translucent — every
-## object here is built from overlapping shapes, and translucent ones stack into
-## visible seams exactly where the outline should read as a single edge. It is
-## the white of the drawing box, near enough to look like nothing.
-const EMPTY_LINE := Color(0.60, 0.63, 0.70)
-const EMPTY_FILL := Color(0.975, 0.975, 0.985)
+## An object still to be counted: the same silhouette in a pale wash of its own
+## colour, so the child can see what is coming and how many are left. A hollow
+## outline on white was the first version and read as an empty diagram of a
+## thing rather than the thing — a pale apple is still an apple, and the tap
+## turns it red. The wash is opaque rather than translucent: every object here
+## is built from overlapping shapes, and translucent ones stack into visible
+## seams exactly where the outline should read as a single edge.
+const PALE_TOWARDS := Color(1.0, 1.0, 1.0)  ## The white of the drawing box.
+const PALE_FILL_MIX := 0.80  ## How far an uncounted object's fill is washed out.
+const PALE_EDGE_MIX := 0.42  ## Its outline keeps more colour, so the shape reads.
 const EDGE_WIDTH_RATIO := 0.09  ## Outline width as a fraction of the radius.
 
 ## How much of its cell an object fills. The rest is the gap between one target
@@ -114,16 +115,18 @@ static func layout(count: int, box: Rect2) -> PackedVector2Array:
 ## Capped, because a cell is the whole box when there is one thing in it and a
 ## single balloon the size of the drawing box does not look like one balloon —
 ## it looks like a mistake. With the cap, one object is much the size of four.
+##
+## Zero has no radius because zero has nothing to draw.
 static func radius_for(count: int, box: Rect2) -> float:
-	var most := minf(box.size.x, box.size.y) * MAX_RADIUS_RATIO
 	if count <= 0:
-		return most * 1.3  ## The lone basket may be bigger; nothing sits beside it.
+		return 0.0
+	var most := minf(box.size.x, box.size.y) * MAX_RADIUS_RATIO
 	return minf(_cell(count, box) * 0.5 * FILL_RATIO, most)
 
 
 ## Draw one object. `filled` is the whole of the state a counted object has:
-## before the tap it is a faint outline of the same shape and size, after it the
-## real thing.
+## before the tap it is the same shape and size in a pale wash of its colour,
+## after it the real thing.
 static func draw_object(canvas: CanvasItem, kind: int, centre: Vector2, radius: float,
 		filled: bool) -> void:
 	match kind:
@@ -143,37 +146,11 @@ static func draw_object(canvas: CanvasItem, kind: int, centre: Vector2, radius: 
 			_ball(canvas, centre, radius, filled)
 
 
-## The basket that stands in for zero: drawn empty, and stays empty. Zero is a
-## quantity, and a screen that skipped it would be teaching that it is not.
-static func draw_basket(canvas: CanvasItem, centre: Vector2, radius: float) -> void:
-	var width := radius * EDGE_WIDTH_RATIO * 0.9
-	var half := radius
-	var top := centre.y - radius * 0.45
-	var bottom := centre.y + radius * 0.75
-	var body := PackedVector2Array([
-		Vector2(centre.x - half, top),
-		Vector2(centre.x + half, top),
-		Vector2(centre.x + half * 0.72, bottom),
-		Vector2(centre.x - half * 0.72, bottom),
-	])
-	canvas.draw_colored_polygon(body, Color(BASKET_BROWN, 0.22))
-	canvas.draw_polyline(body + PackedVector2Array([body[0]]), BASKET_BROWN, width, true)
-	# The weave: a few uprights and one band, enough to read as a basket at a
-	# glance and cheap enough to redraw every frame of a pop.
-	for i in range(1, 4):
-		var t := float(i) / 4.0
-		canvas.draw_line(body[0].lerp(body[1], t), body[3].lerp(body[2], t),
-				Color(BASKET_BROWN, 0.55), width * 0.6, true)
-	var band := 0.45
-	canvas.draw_line(body[0].lerp(body[3], band), body[1].lerp(body[2], band),
-			Color(BASKET_BROWN, 0.55), width * 0.6, true)
-	# The handle, drawn as an arc above the rim.
-	var handle := PackedVector2Array()
-	for i in 17:
-		var angle := PI + PI * float(i) / 16.0
-		handle.append(Vector2(centre.x + cos(angle) * half * 0.86,
-				top + sin(angle) * radius * 0.62))
-	canvas.draw_polyline(handle, BASKET_BROWN, width, true)
+# Zero has no drawing function, and that is deliberate. The first version put an
+# empty basket in the box; on the screen it was a thing, and a child asked "how
+# many?" in front of a thing counts it. Nothing at all is the honest picture of
+# none — the box stays empty, the caption still asks, and the tap that answers is
+# still the child's. Zero is a quantity, and this is what it looks like.
 
 
 # --- the objects -------------------------------------------------------------
@@ -185,8 +162,9 @@ static func draw_basket(canvas: CanvasItem, centre: Vector2, radius: float) -> v
 # a line down each lobe is a pumpkin, which is what the first version drew.
 #
 # The small details — a stalk, an eye, the seams of a ball — are added only once
-# the object has been counted. Uncounted it is a plain hollow shape: simpler to
-# aim at, and the detail arriving with the tap is part of the reward.
+# the object has been counted. Uncounted it is the plain shape in a pale wash of
+# its own colour: simpler to aim at, and the colour and the detail arriving
+# together with the tap are the reward.
 #
 # They are deliberately simple. What a child has to tell apart here is *how
 # many*, not which fruit, and a detailed drawing at nine to a screen is a smudge.
@@ -240,7 +218,7 @@ static func _balloon(canvas: CanvasItem, centre: Vector2, radius: float, filled:
 		var t := float(i) / 8.0
 		string.append(knot + Vector2(sin(t * PI * 1.4) * radius * 0.14,
 				radius * (0.18 + t * 0.44)))
-	canvas.draw_polyline(string, _edge(Kind.BALLOON, filled), radius * 0.05, true)
+	canvas.draw_polyline(string, edge_colour(Kind.BALLOON, filled), radius * 0.05, true)
 
 
 static func _fish(canvas: CanvasItem, centre: Vector2, radius: float, filled: bool) -> void:
@@ -256,7 +234,7 @@ static func _fish(canvas: CanvasItem, centre: Vector2, radius: float, filled: bo
 	_blob(canvas, [body, tail], Kind.FISH, filled, centre, radius * EDGE_WIDTH_RATIO)
 	if filled:
 		canvas.draw_circle(centre + Vector2(radius * 0.4, -radius * 0.1), radius * 0.09,
-				_edge(Kind.FISH, filled))
+				edge_colour(Kind.FISH, filled))
 
 
 static func _ball(canvas: CanvasItem, centre: Vector2, radius: float, filled: bool) -> void:
@@ -264,7 +242,7 @@ static func _ball(canvas: CanvasItem, centre: Vector2, radius: float, filled: bo
 	if not filled:
 		return
 	# Two seams, so a counted ball is not just a coloured dot.
-	var edge := _edge(Kind.BALL, filled)
+	var edge := edge_colour(Kind.BALL, filled)
 	canvas.draw_line(centre + Vector2(-radius * 0.8, 0.0), centre + Vector2(radius * 0.8, 0.0),
 			edge, radius * 0.07, true)
 	var seam := PackedVector2Array()
@@ -283,7 +261,7 @@ static func _flower(canvas: CanvasItem, centre: Vector2, radius: float, filled: 
 	_blob(canvas, petals, Kind.FLOWER, filled, centre, radius * EDGE_WIDTH_RATIO)
 	if filled:
 		canvas.draw_colored_polygon(_circle(centre, radius * 0.34), FLOWER_MIDDLE)
-		_ring(canvas, centre, radius * 0.34, _edge(Kind.FLOWER, filled), radius * 0.6)
+		_ring(canvas, centre, radius * 0.34, edge_colour(Kind.FLOWER, filled), radius * 0.6)
 
 
 static func _leaf(canvas: CanvasItem, centre: Vector2, radius: float, filled: bool) -> void:
@@ -302,7 +280,7 @@ static func _leaf(canvas: CanvasItem, centre: Vector2, radius: float, filled: bo
 			var half := cos(t * PI * 0.5) * radius * 0.40 * (1.0 - t * 0.25)
 			points.append(centre + axis * (t * radius * 0.82) + across * (half * side))
 	_blob(canvas, [points], Kind.LEAF, filled, centre, radius * EDGE_WIDTH_RATIO)
-	var edge := _edge(Kind.LEAF, filled)
+	var edge := edge_colour(Kind.LEAF, filled)
 	canvas.draw_line(centre - axis * radius * 0.82, centre - axis * radius * 1.02,
 			STALK_BROWN if filled else edge, radius * 0.08, true)
 	if filled:
@@ -340,7 +318,7 @@ static func _cell(count: int, box: Rect2) -> float:
 ## edge looks like a mistake rather than a drawing.
 static func _blob(canvas: CanvasItem, parts: Array, kind: int, filled: bool,
 		centre: Vector2, width: float) -> void:
-	var edge := _edge(kind, filled)
+	var edge := edge_colour(kind, filled)
 	for part: PackedVector2Array in parts:
 		var grown := PackedVector2Array()
 		grown.resize(part.size())
@@ -349,7 +327,7 @@ static func _blob(canvas: CanvasItem, parts: Array, kind: int, filled: bool,
 			var distance := out.length()
 			grown[i] = part[i] + (out / distance * width if distance > 0.001 else Vector2.ZERO)
 		canvas.draw_colored_polygon(grown, edge)
-	var fill := _fill(kind, filled)
+	var fill := fill_colour(kind, filled)
 	for part: PackedVector2Array in parts:
 		canvas.draw_colored_polygon(part, fill)
 
@@ -370,10 +348,17 @@ static func _ring(canvas: CanvasItem, centre: Vector2, radius: float, color: Col
 			scale_by * EDGE_WIDTH_RATIO, true)
 
 
-static func _fill(kind: int, filled: bool) -> Color:
-	return FILLS[clampi(kind, 0, FILLS.size() - 1)] if filled else EMPTY_FILL
+## The inside of an object, counted or not. Public because the pale wash is a
+## thing the suite can check without a screen: that it still carries the
+## object's colour, and that it is plainly lighter than the counted one.
+static func fill_colour(kind: int, filled: bool) -> Color:
+	var colour := FILLS[clampi(kind, 0, FILLS.size() - 1)]
+	return colour if filled else colour.lerp(PALE_TOWARDS, PALE_FILL_MIX)
 
 
-static func _edge(kind: int, filled: bool) -> Color:
-	return FILLS[clampi(kind, 0, FILLS.size() - 1)].darkened(0.35) if filled else EMPTY_LINE
+## Its outline. Darker than the fill once counted, and washed out less than the
+## fill before that — the edge is what holds the shape together while it is pale.
+static func edge_colour(kind: int, filled: bool) -> Color:
+	var colour := FILLS[clampi(kind, 0, FILLS.size() - 1)]
+	return colour.darkened(0.35) if filled else colour.lerp(PALE_TOWARDS, PALE_EDGE_MIX)
 
